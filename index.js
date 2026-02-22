@@ -1,53 +1,89 @@
+require('dotenv').config();
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const fs = require('fs');
-const path = require('path');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const SECRET_KEY = '8am-club-secret';
-const DB_PATH = path.join(__dirname, 'db.json');
+const SECRET_KEY = process.env.SECRET_KEY || '8am-club-secret';
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB Atlas'))
+    .catch(err => console.error('MongoDB connection error:', err));
+
+// --- MODELS ---
+const UserSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true }
+});
+const User = mongoose.model('User', UserSchema);
+
+const ActivitySchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    username: String,
+    type: { type: String, required: true },
+    value: { type: Number, default: 0 },
+    note: String,
+    points: { type: Number, default: 0 },
+    timestamp: { type: Date, default: Date.now }
+});
+const Activity = mongoose.model('Activity', ActivitySchema);
+
+const GroupSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+});
+const Group = mongoose.model('Group', GroupSchema);
+
+const MembershipSchema = new mongoose.Schema({
+    groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'Group' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    role: { type: String, default: 'member' }
+});
+const Membership = mongoose.model('Membership', MembershipSchema);
+
+const InvitationSchema = new mongoose.Schema({
+    groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'Group' },
+    groupName: String,
+    fromUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    fromUsername: String,
+    toUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    status: { type: String, default: 'pending' }
+});
+const Invitation = mongoose.model('Invitation', InvitationSchema);
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// Initialize DB structure
-const INITIAL_DB = {
-    users: [],
-    activities: [],
-    groups: [],
-    memberships: [],
-    invitations: []
-};
-
-if (!fs.existsSync(DB_PATH)) {
-    fs.writeFileSync(DB_PATH, JSON.stringify(INITIAL_DB, null, 2));
-}
-
-const readDB = () => JSON.parse(fs.readFileSync(DB_PATH));
-const writeDB = (data) => fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
-
-// Helper for weekly points
+// --- HELPERS ---
 const getStartOfWeek = () => {
     const now = new Date();
-    const day = now.getDay(); // 0 is Sunday
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
     const start = new Date(now.setDate(diff));
     start.setHours(0, 0, 0, 0);
     return start;
 };
 
-const calculatePoints = (db, userId) => {
+const calculateStats = async (userId) => {
     const startOfWeek = getStartOfWeek();
-    const userActivities = db.activities.filter(a => 
-        a.userId === userId && 
-        new Date(a.timestamp) >= startOfWeek
-    );
+    const userActivities = await Activity.find({
+        userId: userId,
+        timestamp: { $gte: startOfWeek }
+    });
     
-    return userActivities.reduce((sum, act) => sum + act.points, 0);
+    return {
+        points: userActivities.reduce((sum, act) => sum + act.points, 0),
+        workouts: userActivities.filter(a => a.type === 'workout').length,
+        wakeups: userActivities.filter(a => a.type === 'wakeup').length,
+        sleep: userActivities.filter(a => a.type === 'sleep').length,
+        steps: userActivities.filter(a => a.type === 'steps').reduce((sum, act) => sum + act.value, 0)
+    };
 };
 
 // Auth Middleware
@@ -65,233 +101,197 @@ const authenticateToken = (req, res, next) => {
 
 // --- AUTH ROUTES ---
 app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body;
-    const db = readDB();
-    if (db.users.find(u => u.username === username)) {
-        return res.status(400).json({ message: 'User already exists' });
+    try {
+        const { username, password } = req.body;
+        const existing = await User.findOne({ username });
+        if (existing) return res.status(400).json({ message: 'User already exists' });
+        
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({ username, password: hashedPassword });
+        await newUser.save();
+        res.status(201).json({ message: 'User registered' });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
     }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = { id: Date.now(), username, password: hashedPassword };
-    db.users.push(newUser);
-    writeDB(db);
-    res.status(201).json({ message: 'User registered' });
 });
 
 app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
-    const db = readDB();
-    const user = db.users.find(u => u.username === username);
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-        return res.status(400).json({ message: 'Invalid credentials' });
+    try {
+        const { username, password } = req.body;
+        const user = await User.findOne({ username });
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+        const token = jwt.sign({ id: user._id, username: user.username }, SECRET_KEY);
+        res.json({ token, user: { id: user._id, username: user.username } });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
     }
-    const token = jwt.sign({ id: user.id, username: user.username }, SECRET_KEY);
-    res.json({ token, user: { id: user.id, username: user.username } });
 });
 
 // --- ACTIVITY ROUTES ---
-app.post('/api/activity', authenticateToken, (req, res) => {
-    const { type, value, note } = req.body;
-    const db = readDB();
-    
-    let pointsEarned = 0;
-    if (type === 'workout') {
-        if (value >= 45) {
-            pointsEarned = 10;
-        } else if (value >= 15) {
-            pointsEarned = 5;
+app.post('/api/activity', authenticateToken, async (req, res) => {
+    try {
+        const { type, value, note } = req.body;
+        let pointsEarned = 0;
+        
+        if (type === 'workout') {
+            if (value >= 45) pointsEarned = 10;
+            else if (value >= 15) pointsEarned = 5;
+        } else if (type === 'steps') {
+            pointsEarned = Math.floor(value / 1000);
+        } else if (type === 'sleep') {
+            if (value >= 7) pointsEarned = 5;
+        } else if (type === 'wakeup') {
+            const now = new Date();
+            if (now.getHours() < 8) pointsEarned = 5;
         }
-    } else if (type === 'steps') {
-        pointsEarned = Math.floor(value / 1000);
-    } else if (type === 'sleep') {
-        if (value >= 7) {
-            pointsEarned = 5;
-        }
-    } else if (type === 'wakeup') {
-        const now = new Date();
-        const hour = now.getHours();
-        // Award 5 points only if before 8:00 AM
-        if (hour < 8) {
-            pointsEarned = 5;
-        } else {
-            pointsEarned = 0;
-        }
+
+        const activity = new Activity({
+            userId: req.user.id,
+            username: req.user.username,
+            type,
+            value: value || 0,
+            note: note || '',
+            points: pointsEarned
+        });
+        
+        await activity.save();
+        res.status(201).json({ message: 'Activity logged', pointsEarned });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
     }
-
-    const activity = {
-        id: Date.now(),
-        userId: req.user.id,
-        username: req.user.username,
-        type,
-        value: value || 0,
-        note: note || '',
-        points: pointsEarned,
-        timestamp: new Date().toISOString()
-    };
-    
-    db.activities.push(activity);
-    writeDB(db);
-    res.status(201).json({ message: 'Activity logged', pointsEarned });
 });
 
-app.get('/api/me', authenticateToken, (req, res) => {
-    const db = readDB();
-    const user = db.users.find(u => u.id === req.user.id);
-    if (!user) return res.sendStatus(404);
-    
-    const startOfWeek = getStartOfWeek();
-    const weeklyActivities = db.activities.filter(a => 
-        a.userId === req.user.id && 
-        new Date(a.timestamp) >= startOfWeek
-    );
-    
-    const weeklyPoints = weeklyActivities.reduce((sum, act) => sum + act.points, 0);
-    const workoutCount = weeklyActivities.filter(a => a.type === 'workout').length;
-    const wakeupCount = weeklyActivities.filter(a => a.type === 'wakeup').length;
-    
-    const myActivities = db.activities.filter(a => a.userId === req.user.id);
-    
-    res.json({
-        user: { 
-            id: user.id, 
-            username: user.username, 
-            weeklyPoints,
-            workoutCount,
-            wakeupCount
-        },
-        activities: myActivities.reverse().slice(0, 10)
-    });
+app.get('/api/me', authenticateToken, async (req, res) => {
+    try {
+        const stats = await calculateStats(req.user.id);
+        const myActivities = await Activity.find({ userId: req.user.id })
+            .sort({ timestamp: -1 })
+            .limit(10);
+        
+        res.json({
+            user: { 
+                id: req.user.id, 
+                username: req.user.username, 
+                weeklyPoints: stats.points,
+                workoutCount: stats.workouts,
+                wakeupCount: stats.wakeups
+            },
+            activities: myActivities
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
 });
-
-const calculateStats = (db, userId) => {
-    const startOfWeek = getStartOfWeek();
-    const userActivities = db.activities.filter(a => 
-        a.userId === userId && 
-        new Date(a.timestamp) >= startOfWeek
-    );
-    
-    return {
-        points: userActivities.reduce((sum, act) => sum + act.points, 0),
-        workouts: userActivities.filter(a => a.type === 'workout').length,
-        wakeups: userActivities.filter(a => a.type === 'wakeup').length,
-        sleep: userActivities.filter(a => a.type === 'sleep').length,
-        steps: userActivities.filter(a => a.type === 'steps').reduce((sum, act) => sum + act.value, 0)
-    };
-};
 
 // --- GROUP ROUTES ---
-app.post('/api/groups', authenticateToken, (req, res) => {
-    const { name } = req.body;
-    const db = readDB();
-    
-    const newGroup = {
-        id: Date.now(),
-        name,
-        ownerId: req.user.id
-    };
-    
-    db.groups.push(newGroup);
-    db.memberships.push({
-        groupId: newGroup.id,
-        userId: req.user.id,
-        role: 'owner'
-    });
-    
-    writeDB(db);
-    res.status(201).json(newGroup);
-});
-
-app.get('/api/groups', authenticateToken, (req, res) => {
-    const db = readDB();
-    const userMemberships = db.memberships.filter(m => m.userId === req.user.id);
-    const groupIds = userMemberships.map(m => m.groupId);
-    const myGroups = db.groups.filter(g => groupIds.includes(g.id));
-    
-    res.json(myGroups);
-});
-
-app.get('/api/groups/:groupId/leaderboard', authenticateToken, (req, res) => {
-    const groupId = parseInt(req.params.groupId);
-    const db = readDB();
-    
-    // Check membership
-    if (!db.memberships.find(m => m.groupId === groupId && m.userId === req.user.id)) {
-        return res.status(403).json({ message: 'Not a member of this group' });
+app.post('/api/groups', authenticateToken, async (req, res) => {
+    try {
+        const newGroup = new Group({ name: req.body.name, ownerId: req.user.id });
+        await newGroup.save();
+        const membership = new Membership({ groupId: newGroup._id, userId: req.user.id, role: 'owner' });
+        await membership.save();
+        res.status(201).json(newGroup);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
     }
-    
-    const members = db.memberships.filter(m => m.groupId === groupId);
-    const leaderboard = members.map(m => {
-        const user = db.users.find(u => u.id === m.userId);
-        const stats = calculateStats(db, m.userId);
-        return {
-            username: user ? user.username : 'Unknown',
-            weeklyPoints: stats.points,
-            workouts: stats.workouts,
-            wakeups: stats.wakeups,
-            sleep: stats.sleep,
-            steps: stats.steps
-        };
-    }).sort((a, b) => b.weeklyPoints - a.weeklyPoints);
-    
-    res.json(leaderboard);
+});
+
+app.get('/api/groups', authenticateToken, async (req, res) => {
+    try {
+        const memberships = await Membership.find({ userId: req.user.id }).populate('groupId');
+        const myGroups = memberships.map(m => m.groupId);
+        res.json(myGroups);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.get('/api/groups/:groupId/leaderboard', authenticateToken, async (req, res) => {
+    try {
+        const groupId = req.params.groupId;
+        const members = await Membership.find({ groupId }).populate('userId');
+        
+        const leaderboard = await Promise.all(members.map(async (m) => {
+            const stats = await calculateStats(m.userId._id);
+            return {
+                username: m.userId.username,
+                weeklyPoints: stats.points,
+                workouts: stats.workouts,
+                wakeups: stats.wakeups,
+                sleep: stats.sleep,
+                steps: stats.steps
+            };
+        }));
+        
+        res.json(leaderboard.sort((a, b) => b.weeklyPoints - a.weeklyPoints));
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
 // --- INVITATION ROUTES ---
-app.post('/api/invitations', authenticateToken, (req, res) => {
-    const { groupId, targetUsername } = req.body;
-    const db = readDB();
-    
-    const targetUser = db.users.find(u => u.username === targetUsername);
-    if (!targetUser) return res.status(404).json({ message: 'User not found' });
-    
-    // Check if already member
-    if (db.memberships.find(m => m.groupId === groupId && m.userId === targetUser.id)) {
-        return res.status(400).json({ message: 'User is already a member' });
-    }
-    
-    const invitation = {
-        id: Date.now(),
-        groupId,
-        groupName: db.groups.find(g => g.id === groupId).name,
-        fromUserId: req.user.id,
-        fromUsername: req.user.username,
-        toUserId: targetUser.id,
-        status: 'pending'
-    };
-    
-    db.invitations.push(invitation);
-    writeDB(db);
-    res.status(201).json({ message: 'Invitation sent' });
-});
-
-app.get('/api/invitations', authenticateToken, (req, res) => {
-    const db = readDB();
-    const myInvites = db.invitations.filter(i => i.toUserId === req.user.id && i.status === 'pending');
-    res.json(myInvites);
-});
-
-app.post('/api/invitations/:id/respond', authenticateToken, (req, res) => {
-    const { accept } = req.body;
-    const inviteId = parseInt(req.params.id);
-    const db = readDB();
-    
-    const invite = db.invitations.find(i => i.id === inviteId && i.toUserId === req.user.id);
-    if (!invite) return res.status(404).json({ message: 'Invitation not found' });
-    
-    if (accept) {
-        db.memberships.push({
-            groupId: invite.groupId,
-            userId: req.user.id,
-            role: 'member'
+app.post('/api/invitations', authenticateToken, async (req, res) => {
+    try {
+        const { groupId, targetUsername } = req.body;
+        const targetUser = await User.findOne({ username: targetUsername });
+        if (!targetUser) return res.status(404).json({ message: 'User not found' });
+        
+        const group = await Group.findById(groupId);
+        const invitation = new Invitation({
+            groupId,
+            groupName: group.name,
+            fromUserId: req.user.id,
+            fromUsername: req.user.username,
+            toUserId: targetUser._id
         });
-        invite.status = 'accepted';
-    } else {
-        invite.status = 'rejected';
+        
+        await invitation.save();
+        res.status(201).json({ message: 'Invitation sent' });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
     }
-    
-    writeDB(db);
-    res.json({ message: accept ? 'Joined group' : 'Invitation rejected' });
+});
+
+app.get('/api/invitations', authenticateToken, async (req, res) => {
+    try {
+        const myInvites = await Invitation.find({ toUserId: req.user.id, status: 'pending' });
+        res.json(myInvites);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.post('/api/invitations/:id/respond', authenticateToken, async (req, res) => {
+    try {
+        const { accept } = req.body;
+        const invite = await Invitation.findById(req.params.id);
+        if (!invite) return res.status(404).json({ message: 'Not found' });
+        
+        if (accept) {
+            const membership = new Membership({ groupId: invite.groupId, userId: req.user.id });
+            await membership.save();
+            invite.status = 'accepted';
+        } else {
+            invite.status = 'rejected';
+        }
+        await invite.save();
+        res.json({ message: accept ? 'Joined group' : 'Rejected' });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// --- SERVE FRONTEND ---
+// Static files from React build
+app.use(express.static(path.join(__dirname, 'client/dist')));
+
+// For any route that doesn't match an API route, send back the index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://192.168.1.247:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });

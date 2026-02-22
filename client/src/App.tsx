@@ -19,10 +19,10 @@ import {
 } from 'lucide-react';
 import './App.css';
 
-const API_URL = `http://${window.location.hostname}:5000/api`;
+const API_URL = '/api';
 
 type User = {
-  id: number;
+  id: string;
   username: string;
   weeklyPoints: number;
   workoutCount: number;
@@ -30,7 +30,7 @@ type User = {
 };
 
 type ActivityLog = {
-  id: number;
+  id: string;
   type: string;
   value: number;
   note?: string;
@@ -39,14 +39,14 @@ type ActivityLog = {
 };
 
 type Group = {
-  id: number;
+  id: string;
   name: string;
-  ownerId: number;
+  ownerId: string;
 };
 
 type Invitation = {
-  id: number;
-  groupId: number;
+  id: string;
+  groupId: string;
   groupName: string;
   fromUsername: string;
 };
@@ -78,6 +78,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('log');
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [workout, setWorkout] = useState('');
+  const [workoutType, setWorkoutType] = useState('');
   const [steps, setSteps] = useState('');
   const [sleep, setSleep] = useState('');
   
@@ -128,7 +129,7 @@ function App() {
     }
   };
 
-  const fetchGroupLeaderboard = async (groupId: number) => {
+  const fetchGroupLeaderboard = async (groupId: string) => {
     try {
       const res = await axios.get(`${API_URL}/groups/${groupId}/leaderboard`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -166,7 +167,11 @@ function App() {
     const value = parseInt(val);
     if (type !== 'wakeup' && (isNaN(value) || value < 0)) return;
     try {
-      const res = await axios.post(`${API_URL}/activity`, { type, value }, {
+      const res = await axios.post(`${API_URL}/activity`, { 
+        type, 
+        value,
+        note: type === 'workout' ? workoutType : ''
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -178,6 +183,7 @@ function App() {
       if (selectedGroup) fetchGroupLeaderboard(selectedGroup.id);
       setSteps('');
       setWorkout('');
+      setWorkoutType('');
       setSleep('');
     } catch (error) {
       alert('Failed to log activity');
@@ -214,7 +220,7 @@ function App() {
     }
   };
 
-  const respondToInvitation = async (id: number, accept: boolean) => {
+  const respondToInvitation = async (id: string, accept: boolean) => {
     try {
       await axios.post(`${API_URL}/invitations/${id}/respond`, { accept }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -303,12 +309,15 @@ function App() {
               ) : (
                 activities.map((act, idx) => (
                   <div key={idx} className="leaderboard-item" style={{ fontSize: '0.85rem' }}>
-                    <span>
-                      {act.type === 'steps' ? `${act.value} Steps` : 
-                       act.type === 'workout' ? `${act.value} min Workout` : 
-                       act.type === 'sleep' ? `${act.value} hrs Sleep` : 
-                       act.points > 0 ? 'Early Wakeup ☀️' : 'Late Wakeup 😴'}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span>
+                        {act.type === 'steps' ? `${act.value} Steps` : 
+                         act.type === 'workout' ? `${act.value} min Workout` : 
+                         act.type === 'sleep' ? `${act.value} hrs Sleep` : 
+                         act.points > 0 ? 'Early Wakeup ☀️' : 'Late Wakeup 😴'}
+                      </span>
+                      {act.note && <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>{act.note}</span>}
+                    </div>
                     <span className="badge">+{act.points} pts</span>
                   </div>
                 ))
@@ -330,9 +339,12 @@ function App() {
                 <input className="input" placeholder="Steps" value={steps} onChange={(e) => setSteps(e.target.value)} type="number" min="0" style={{ margin: 0, textAlign: 'center', background: 'transparent', border: 'none', borderBottom: '1px solid var(--muted)', padding: '0' }} />
                 <button className="badge" style={{ width: '100%', border: 'none', cursor: 'pointer' }} onClick={() => logActivity('steps', steps)}><Check size={16} /></button>
               </div>
-              <div className="mini-log-btn">
+              <div className="mini-log-btn" style={{ gridColumn: 'span 2' }}>
                 <Clock size={20} color="var(--primary)" />
-                <input className="input" placeholder="Min" value={workout} onChange={(e) => setWorkout(e.target.value)} type="number" min="0" style={{ margin: 0, textAlign: 'center', background: 'transparent', border: 'none', borderBottom: '1px solid var(--muted)', padding: '0' }} />
+                <div style={{ width: '100%', display: 'flex', gap: '0.5rem' }}>
+                  <input className="input" placeholder="Min" value={workout} onChange={(e) => setWorkout(e.target.value)} type="number" min="0" style={{ flex: 1, margin: 0, textAlign: 'center', background: 'transparent', border: 'none', borderBottom: '1px solid var(--muted)', padding: '0' }} />
+                  <input className="input" placeholder="Type" value={workoutType} onChange={(e) => setWorkoutType(e.target.value)} type="text" style={{ flex: 2, margin: 0, textAlign: 'center', background: 'transparent', border: 'none', borderBottom: '1px solid var(--muted)', padding: '0' }} />
+                </div>
                 <button className="badge" style={{ width: '100%', border: 'none', cursor: 'pointer' }} onClick={() => logActivity('workout', workout)}><Check size={16} /></button>
               </div>
               <div className="mini-log-btn">
