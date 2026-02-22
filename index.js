@@ -284,12 +284,28 @@ app.post('/api/invitations/:id/respond', authenticateToken, async (req, res) => 
 });
 
 // --- SERVE FRONTEND ---
+const distPath = path.join(__dirname, 'client', 'dist');
+
 // Static files from React build
-app.use(express.static(path.join(__dirname, 'client/dist')));
+app.use(express.static(distPath));
+
+// Diagnostic route
+app.get('/debug-dist', (req, res) => {
+    const fs = require('fs');
+    const exists = fs.existsSync(distPath);
+    const files = exists ? fs.readdirSync(distPath) : [];
+    res.json({ distPath, exists, files });
+});
 
 // For any route that doesn't match an API route, send back the index.html
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+    const indexPath = path.join(distPath, 'index.html');
+    res.sendFile(indexPath, (err) => {
+        if (err) {
+            console.error('Error sending index.html:', err);
+            res.status(404).send('Frontend not built or index.html missing. Please check build logs.');
+        }
+    });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
