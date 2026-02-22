@@ -12,7 +12,15 @@ const PORT = process.env.PORT || 5000;
 const SECRET_KEY = process.env.SECRET_KEY || '8am-club-secret';
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
+const uri = process.env.MONGODB_URI;
+if (!uri) {
+    console.error('CRITICAL: MONGODB_URI is not defined in environment variables!');
+} else {
+    const maskedUri = uri.replace(/:([^@]+)@/, ':****@');
+    console.log('Connecting to MongoDB with URI:', maskedUri);
+}
+
+mongoose.connect(uri)
     .then(() => console.log('Connected to MongoDB Atlas'))
     .catch(err => console.error('MongoDB connection error:', err));
 
