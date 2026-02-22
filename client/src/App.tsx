@@ -88,6 +88,8 @@ function App() {
   const [inviteUsername, setInviteUsername] = useState('');
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [pointsPopup, setPointsPopup] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -109,6 +111,7 @@ function App() {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const [meRes, groupsRes, invitesRes] = await Promise.all([
         axios.get(`${API_URL}/me`, config),
@@ -126,6 +129,8 @@ function App() {
       }
     } catch (error) {
       handleLogout();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -142,6 +147,8 @@ function App() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
     try {
       const endpoint = isRegistering ? 'register' : 'login';
       const res = await axios.post(`${API_URL}/${endpoint}`, { username, password });
@@ -153,7 +160,10 @@ function App() {
         setToken(res.data.token);
       }
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error occurred');
+      setError(error.response?.data?.message || 'Error occurred');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -239,13 +249,23 @@ function App() {
           <p style={{ color: 'var(--muted)', textAlign: 'center', marginBottom: '1.5rem' }}>
             {isRegistering ? 'Join the community of winners.' : 'Ready to dominate the day?'}
           </p>
-          <form onSubmit={handleLogin}>
-            <input className="input" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-            <input className="input" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <button className="btn" type="submit" style={{ marginTop: '1rem' }}>
-              {isRegistering ? 'Create Account' : 'Sign In'}
-            </button>
-          </form>
+
+          {error && <div className="error-toast">{error}</div>}
+
+          {loading ? (
+            <div className="spinner-container" style={{ height: 'auto', padding: '2rem' }}>
+              <div className="spinner"></div>
+            </div>
+          ) : (
+            <form onSubmit={handleLogin}>
+              <input className="input" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+              <input className="input" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <button className="btn" type="submit" style={{ marginTop: '1rem' }}>
+                {isRegistering ? 'Create Account' : 'Sign In'}
+              </button>
+            </form>
+          )}
+
           <p style={{ textAlign: 'center', marginTop: '1rem', cursor: 'pointer', fontSize: '0.875rem' }} 
              onClick={() => setIsRegistering(!isRegistering)}>
             {isRegistering ? 'Already have an account? Log in' : "Don't have an account? Register"}
@@ -257,6 +277,15 @@ function App() {
 
   const weeklyGoal = 7; // Example goal
   const progressPercent = Math.min(((user?.workoutCount || 0) + (user?.wakeupCount || 0)) / (weeklyGoal * 2) * 100, 100);
+
+  if (loading && !user) {
+    return (
+      <div className="spinner-container">
+        <div className="spinner"></div>
+        <p style={{ color: 'var(--muted)' }}>Loading the Club...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="app">

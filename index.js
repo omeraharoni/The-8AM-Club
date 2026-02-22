@@ -111,6 +111,7 @@ app.post('/api/register', async (req, res) => {
         await newUser.save();
         res.status(201).json({ message: 'User registered' });
     } catch (err) {
+        console.error('Register error:', err);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -125,6 +126,7 @@ app.post('/api/login', async (req, res) => {
         const token = jwt.sign({ id: user._id, username: user.username }, SECRET_KEY);
         res.json({ token, user: { id: user._id, username: user.username } });
     } catch (err) {
+        console.error('Login error:', err);
         res.status(500).json({ message: 'Server error' });
     }
 });
