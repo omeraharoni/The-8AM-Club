@@ -15,8 +15,8 @@ yarn-error.log*
 db.json
 
 # Build
-dist/
-build/
+# dist/
+# build/
 .DS_Store
 
 # IDE
