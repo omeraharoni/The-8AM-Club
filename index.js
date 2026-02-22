@@ -17,12 +17,14 @@ if (!uri) {
     console.error('CRITICAL: MONGODB_URI is not defined in environment variables!');
 } else {
     const maskedUri = uri.replace(/:([^@]+)@/, ':****@');
-    console.log('Connecting to MongoDB with URI:', maskedUri);
+    console.log('Attempting connection to MongoDB...');
 }
 
-mongoose.connect(uri)
-    .then(() => console.log('Connected to MongoDB Atlas'))
-    .catch(err => console.error('MongoDB connection error:', err));
+mongoose.connect(uri, {
+    serverSelectionTimeoutMS: 10000, // Wait 10 seconds for the first connection
+})
+    .then(() => console.log('✅ Connected to MongoDB Atlas'))
+    .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // --- MODELS ---
 const UserSchema = new mongoose.Schema({
