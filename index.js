@@ -14,17 +14,21 @@ const SECRET_KEY = process.env.SECRET_KEY || '8am-club-secret';
 // Connect to MongoDB
 const uri = process.env.MONGODB_URI;
 if (!uri) {
-    console.error('CRITICAL: MONGODB_URI is not defined in environment variables!');
+    console.error('CRITICAL: MONGODB_URI is not defined!');
 } else {
-    const maskedUri = uri.replace(/:([^@]+)@/, ':****@');
-    console.log('Attempting connection to MongoDB...');
+    // Mask password for safe logging
+    const masked = uri.replace(/:([^@]+)@/, ':****@');
+    console.log(`Attempting to connect to: ${masked}`);
 }
 
 mongoose.connect(uri, {
-    serverSelectionTimeoutMS: 10000, // Wait 10 seconds for the first connection
+    serverSelectionTimeoutMS: 30000, // 30s timeout
 })
-    .then(() => console.log('✅ Connected to MongoDB Atlas'))
-    .catch(err => console.error('❌ MongoDB connection error:', err));
+    .then(() => console.log('✅ MongoDB Connected Successfully!'))
+    .catch(err => {
+        console.error('❌ MongoDB Connection FAILED:');
+        console.error(err.message);
+    });
 
 // --- MODELS ---
 const UserSchema = new mongoose.Schema({
