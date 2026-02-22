@@ -22,13 +22,30 @@ if (!uri) {
 }
 
 mongoose.connect(uri, {
-    serverSelectionTimeoutMS: 30000, // 30s timeout
+    serverSelectionTimeoutMS: 5000, // Fail fast (5s) to show error in logs
 })
-    .then(() => console.log('✅ MongoDB Connected Successfully!'))
+    .then(() => {
+        console.log('✅ MongoDB Connected Successfully!');
+        // Only start server if DB connects
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    })
     .catch(err => {
-        console.error('❌ MongoDB Connection FAILED:');
-        console.error(err.message);
+        console.error('❌ MongoDB Connection FAILED:', err.message);
+        // Don't start server so Render knows it failed
+        process.exit(1);
     });
+
+// Health check route
+app.get('/health', (req, res) => {
+    const state = mongoose.connection.readyState;
+    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    res.json({ 
+        status: state === 1 ? 'ok' : 'error',
+        dbState: states[state] || 'unknown'
+    });
+});
 
 // --- MODELS ---
 const UserSchema = new mongoose.Schema({
@@ -322,8 +339,4 @@ app.get('*', (req, res) => {
             res.status(404).send('Frontend not built or index.html missing. Please check build logs.');
         }
     });
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
 });
