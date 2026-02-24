@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Moon, Check, ChevronUp, ChevronDown } from 'lucide-react';
 
@@ -30,7 +30,7 @@ const SleepLogOverlay: React.FC<SleepLogOverlayProps> = ({ isOpen, onClose, onLo
   const formatTime = (h: number) => {
     const hours = Math.floor(h);
     const mins = Math.round((h % 1) * 60);
-    const displayMins = mins === 60 ? 0 : (mins > 59 ? 59 : mins);
+    const displayMins = mins >= 60 ? 0 : mins;
     const displayHours = mins === 60 ? (hours + 1) % 24 : hours;
     return `${displayHours.toString().padStart(2, '0')}:${displayMins.toString().padStart(2, '0')}`;
   };
@@ -46,31 +46,31 @@ const SleepLogOverlay: React.FC<SleepLogOverlayProps> = ({ isOpen, onClose, onLo
 
   const Roller = ({ value, label, onChange }: { value: number, label: string, onChange: (v: number) => void }) => (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-      <span style={{ color: 'var(--muted)', fontSize: '0.65rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 'bold' }}>{label}</span>
+      <span style={{ color: 'var(--muted)', fontSize: '0.6rem', marginBottom: '0.2rem', textTransform: 'uppercase', fontWeight: 'bold' }}>{label}</span>
       <div style={{ 
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center', 
         background: 'rgba(255,255,255,0.05)', 
-        borderRadius: '1rem',
-        padding: '0.3rem',
+        borderRadius: '0.8rem',
+        padding: '0.2rem',
         width: '100%',
         border: '1px solid rgba(255,255,255,0.05)'
       }}>
         <button 
           onClick={() => onChange((value + 0.5) % 24)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer' }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '0.2rem' }}
         >
-          <ChevronUp size={24} />
+          <ChevronUp size={20} />
         </button>
-        <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'white', fontFamily: 'monospace' }}>
+        <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'white', fontFamily: 'monospace' }}>
           {formatTime(value)}
         </div>
         <button 
           onClick={() => onChange((value - 0.5 + 24) % 24)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer' }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '0.2rem' }}
         >
-          <ChevronDown size={24} />
+          <ChevronDown size={20} />
         </button>
       </div>
     </div>
@@ -95,7 +95,7 @@ const SleepLogOverlay: React.FC<SleepLogOverlayProps> = ({ isOpen, onClose, onLo
               bottom: 0,
               background: 'rgba(0,0,0,0.85)',
               zIndex: 2000,
-              backdropFilter: 'blur(10px)'
+              backdropFilter: 'blur(8px)'
             }}
           />
           <motion.div
@@ -113,36 +113,37 @@ const SleepLogOverlay: React.FC<SleepLogOverlayProps> = ({ isOpen, onClose, onLo
               borderTopRightRadius: '2rem',
               padding: '1rem 1.2rem',
               zIndex: 2001,
-              maxHeight: '85vh',
+              maxHeight: '80vh',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: '0 -15px 35px rgba(0,0,0,0.5)',
               border: '1px solid rgba(255,255,255,0.05)'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <h2 style={{ fontSize: '1rem', margin: 0, color: 'white', fontWeight: '800', opacity: 0.6 }}>Night Summary</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <h2 style={{ fontSize: '0.9rem', margin: 0, color: 'white', fontWeight: '800', opacity: 0.5 }}>Night Summary</h2>
               <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: '0.3rem', borderRadius: '50%' }}>
                 <X size={16} />
               </button>
             </div>
 
-            <div style={{ textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center' }}>
-              <div>
-                <p style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)', fontSize: '1.4rem', fontWeight: '900', lineHeight: 1.1 }}>How did you sleep, Champ?</p>
-                <div style={{ fontSize: '3rem', fontWeight: '900', color: 'white', lineHeight: 1, letterSpacing: '-2px' }}>
+            <div style={{ textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
+              <p style={{ margin: '0 0 0.4rem 0', color: 'var(--primary)', fontSize: '1.3rem', fontWeight: '900', lineHeight: 1.1 }}>How did you sleep, Champ?</p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ fontSize: '2.8rem', fontWeight: '900', color: 'white', lineHeight: 1, letterSpacing: '-2px' }}>
                   {duration}<span style={{ fontSize: '1rem', color: 'var(--muted)', marginLeft: '2px' }}>h</span>
                 </div>
                 {duration >= 7 && (
-                   <div style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '0.2rem', background: 'rgba(34, 197, 94, 0.1)', padding: '0.1rem 0.6rem', borderRadius: '2rem', display: 'inline-block' }}>
+                   <div style={{ color: '#22c55e', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '0.2rem', background: 'rgba(34, 197, 94, 0.1)', padding: '0.1rem 0.6rem', borderRadius: '2rem' }}>
                      ✓ Goal Reached (5 pts)
                    </div>
                 )}
               </div>
               
-              <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.8rem 0.5rem', borderRadius: '1.2rem', border: '1px solid rgba(255,255,255,0.03)', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.6rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.03)', alignItems: 'center' }}>
                 <Roller value={bedTime} label="Bedtime" onChange={setBedTime} />
-                <div style={{ color: 'var(--muted)', fontSize: '0.8rem', fontWeight: 'bold', paddingTop: '1rem', opacity: 0.3 }}>to</div>
+                <div style={{ color: 'var(--muted)', fontSize: '0.8rem', fontWeight: 'bold', paddingTop: '0.8rem', opacity: 0.3 }}>to</div>
                 <Roller value={wakeTime} label="Wake up" onChange={setWakeTime} />
               </div>
             </div>
@@ -152,8 +153,8 @@ const SleepLogOverlay: React.FC<SleepLogOverlayProps> = ({ isOpen, onClose, onLo
               disabled={isLoading}
               className="btn" 
               style={{ 
-                marginTop: '1rem',
-                padding: '0.9rem',
+                marginTop: '0.8rem',
+                padding: '0.8rem',
                 fontSize: '1rem',
                 fontWeight: '900',
                 display: 'flex',
