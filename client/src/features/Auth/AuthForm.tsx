@@ -179,7 +179,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
         <GoogleLogin
           onSuccess={handleGoogleSuccess}
           onError={() => setError('Google Login failed')}
-          locale="en_US"
           shape="pill"
           theme="filled_blue"
           text="continue_with"

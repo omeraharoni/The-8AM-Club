@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   Activity, 
   User as UserIcon, 
-  LogOut, 
+  LogOut,
   Check, 
   Users, 
   Plus, 
   Send, 
   Bell, 
-  BarChart2, 
   List, 
   Dumbbell,
-  Clock,
   Footprints,
   Sun,
   Moon,
@@ -20,15 +18,20 @@ import {
   X
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import api from '../../services/api';
-import type { User, ActivityLog, Group, Invitation, LeaderboardItem } from '../../types';
+import type { User, ActivityLog } from '../../types';
 import WorkoutLogOverlay from './WorkoutLogOverlay';
 import StepsLogOverlay from './StepsLogOverlay';
 import SleepLogOverlay from './SleepLogOverlay';
 
 interface DashboardProps {
   onLogout: () => void;
+}
+
+interface MeResponse {
+  user: User & { email: string, dob: string, gender: string };
+  activities: ActivityLog[];
 }
 
 const WORKOUT_INSPIRATION = [
@@ -42,13 +45,9 @@ const WORKOUT_INSPIRATION = [
 const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const queryClient = useQueryClient();
   const location = useLocation();
-  const navigate = useNavigate();
   const activeTab = location.pathname.split('/').pop() || 'log';
 
-  const [workout, setWorkout] = useState('');
   const [workoutType, setWorkoutType] = useState('');
-  const [steps, setSteps] = useState('');
-  const [sleep, setSleep] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [inviteUsername, setInviteUsername] = useState('');
   const [popups, setPopups] = useState<{ id: number, text: string, className: string }[]>([]);
@@ -68,26 +67,26 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
   // --- QUERIES ---
   
-  const { data: userData, isLoading: userLoading } = useQuery({
+  const { data: userData, isLoading: userLoading } = useQuery<MeResponse>({
     queryKey: ['me'],
     queryFn: () => api.get('/me').then(res => res.data),
     retry: false,
-  } as any);
+  });
 
-  const { data: groupsData } = useQuery({
+  const { data: groupsData } = useQuery<any[]>({
     queryKey: ['groups'],
     queryFn: () => api.get('/groups').then(res => res.data),
   });
   const groups = Array.isArray(groupsData) ? groupsData : [];
 
-  const { data: invitationsData } = useQuery({
+  const { data: invitationsData } = useQuery<any[]>({
     queryKey: ['invitations'],
     queryFn: () => api.get('/invitations').then(res => res.data),
     refetchInterval: 30000,
   });
   const invitations = Array.isArray(invitationsData) ? invitationsData : [];
 
-  const { data: leaderboardData } = useQuery({
+  const { data: leaderboardData } = useQuery<any[]>({
     queryKey: ['leaderboard', selectedGroupId],
     queryFn: () => api.get(`/groups/${selectedGroupId}/leaderboard`).then(res => res.data),
     enabled: !!selectedGroupId,
@@ -119,17 +118,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     setPopups(prev => [...prev, { id, text, className }]);
     setTimeout(() => {
       setPopups(prev => prev.filter(p => p.id !== id));
-    }, 2500); // Stay for 2.5 seconds
+    }, 3500); // Stay for 3.5 seconds
   };
 
   const updateProfileMutation = useMutation({
     mutationFn: (data: typeof editData) => api.put('/user/profile', data).then(res => res.data),
     onSuccess: (response) => {
-      // response is { user: { ... } }
-      queryClient.setQueryData(['me'], (oldData: any) => ({
-        ...oldData,
-        user: response.user
-      }));
+      queryClient.setQueryData(['me'], (oldData: MeResponse | undefined) => {
+        if (!oldData) return undefined;
+        return {
+          ...oldData,
+          user: response.user
+        };
+      });
       
       queryClient.invalidateQueries({ queryKey: ['me'] });
       setIsEditing(false);
@@ -148,20 +149,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       const displayPts = parseFloat(pts.toFixed(1));
       const ptsText = `+${displayPts} pts`;
       
-      console.log(`[SUCCESS] Activity: ${variables.type}, Points: ${pts}`);
-
       if (variables.type === 'sleep' && variables.value >= 7) {
-        // Dual popups for good sleep!
         addPopup(ptsText, 'popup-left');
         addPopup("BATTERY LOADED! YOU'RE READY! 🔋", 'popup-right');
       } else if (pts > 0 || variables.type === 'sleep') {
-        // Standard single popup (includes +0 pts for short sleep)
         addPopup(ptsText, 'popup-left');
       }
 
       queryClient.invalidateQueries({ queryKey: ['me'] });
       if (selectedGroupId) queryClient.invalidateQueries({ queryKey: ['leaderboard', selectedGroupId] });
-      setSteps(''); setWorkout(''); setWorkoutType(''); setSleep('');
     }
   });
 
@@ -246,7 +242,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const activities = userData?.activities || [];
   const selectedGroup = groups.find((g: any) => (g.id || g._id) === selectedGroupId);
 
-  // Calculate today's current steps for the initial slider value
   const todaySteps = (() => {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -270,7 +265,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
   return (
     <div className="app">
-      {/* Tab Content */}
       <div className="tab-content" style={{ minHeight: '60vh' }}>
         <Routes>
           <Route path="workouts" element={
@@ -382,7 +376,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 </div>
               )}
 
-              {/* Recent Activity Mini Log */}
               <div className="card" style={{ marginTop: '2rem', textAlign: 'left' }}>
                 <h2 style={{ fontSize: '1.1rem' }}><Check size={18} style={{ marginRight: '0.5rem' }} /> Today's Activity</h2>
                 {activities.length === 0 ? (
@@ -564,7 +557,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         </Routes>
       </div>
 
-      {/* Bottom Nav */}
       <div className="bottom-nav">
         <Link to="/dashboard/workouts" className={`nav-item ${activeTab === 'workouts' ? 'active' : ''}`}>
           <Dumbbell size={20} />
@@ -588,14 +580,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         </Link>
       </div>
 
-      {/* Floating Popups */}
       {popups.map(popup => (
         <div key={popup.id} className={`points-popup ${popup.className}`}>
           {popup.text}
         </div>
       ))}
 
-      {/* Workout Log Overlay */}
       <WorkoutLogOverlay 
         isOpen={isWorkoutLogOpen}
         initialType={workoutType}
@@ -603,7 +593,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         onLog={handleWorkoutLog}
       />
 
-      {/* Steps Log Overlay */}
       <StepsLogOverlay 
         isOpen={isStepsLogOpen}
         initialSteps={todaySteps}
@@ -612,7 +601,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         onLog={handleStepsLog}
       />
 
-      {/* Sleep Log Overlay */}
       <SleepLogOverlay 
         isOpen={isSleepLogOpen}
         initialWakeTime={lastWakeupTime ?? undefined}

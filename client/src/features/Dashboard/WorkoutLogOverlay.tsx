@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Check, Users, Dumbbell, Clock } from 'lucide-react';
+import { X, Users } from 'lucide-react';
 import { WORKOUT_TYPES } from './workoutConstants';
 
 interface WorkoutLogOverlayProps {
