@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import AuthForm from './features/Auth/AuthForm';
 import Dashboard from './features/Dashboard/Dashboard';

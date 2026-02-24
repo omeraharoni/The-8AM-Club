@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Activity, 
   User as UserIcon, 
@@ -42,7 +42,7 @@ const WORKOUT_INSPIRATION = [
   { name: 'Cycling', description: 'Endurance or Sprints', pts: '10 pts', calories: '450-700 kcal/hr', icon: <Activity size={24} /> }
 ];
 
-const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
+const Dashboard = ({ onLogout }: DashboardProps) => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const activeTab = location.pathname.split('/').pop() || 'log';

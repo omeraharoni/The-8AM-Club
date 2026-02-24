@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, ChevronUp, ChevronDown } from 'lucide-react';
 
@@ -10,7 +10,7 @@ interface SleepLogOverlayProps {
   initialWakeTime?: number;
 }
 
-const SleepLogOverlay: React.FC<SleepLogOverlayProps> = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }) => {
+const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }: SleepLogOverlayProps) => {
   const [bedTime, setBedTime] = useState(23.0); 
   const [wakeTime, setWakeTime] = useState(7.0);
   const [duration, setDuration] = useState(8.0);

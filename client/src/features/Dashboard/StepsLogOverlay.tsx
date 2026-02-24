@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Footprints, Check } from 'lucide-react';
 
@@ -10,12 +10,12 @@ interface StepsLogOverlayProps {
   isLoading?: boolean;
 }
 
-const StepsLogOverlay: React.FC<StepsLogOverlayProps> = ({ isOpen, onClose, onLog, initialSteps = 0, isLoading }) => {
+const StepsLogOverlay = ({ isOpen, onClose, onLog, initialSteps = 0, isLoading }: StepsLogOverlayProps) => {
   const [steps, setSteps] = useState(initialSteps || 5000);
   const [isTyping, setIsTyping] = useState(false);
 
   // Initialize with current day's steps when opening
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       setSteps(Math.max(initialSteps || 0, 5000));
     }

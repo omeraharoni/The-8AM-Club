@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users } from 'lucide-react';
 import { WORKOUT_TYPES } from './workoutConstants';
@@ -10,14 +10,14 @@ interface WorkoutLogOverlayProps {
   initialType?: string;
 }
 
-const WorkoutLogOverlay: React.FC<WorkoutLogOverlayProps> = ({ isOpen, onClose, onLog, initialType }) => {
+const WorkoutLogOverlay = ({ isOpen, onClose, onLog, initialType }: WorkoutLogOverlayProps) => {
   const [step, setStep] = useState(1);
   const [selectedType, setSelectedType] = useState(initialType || '');
   const [duration, setDuration] = useState(30);
   const [isShared, setIsShared] = useState(false);
 
   // Sync initial type when opening
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen && initialType) {
       setSelectedType(initialType);
     }

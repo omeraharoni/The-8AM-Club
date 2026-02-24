@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import api from '../../services/api';
@@ -7,7 +7,7 @@ interface AuthFormProps {
   onLoginSuccess: (token: string) => void;
 }
 
-const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
+const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +25,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
     }
   }, [email, useEmailAsUsername, isRegistering]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
