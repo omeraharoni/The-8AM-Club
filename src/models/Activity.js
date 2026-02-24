@@ -6,6 +6,7 @@ const ActivitySchema = new mongoose.Schema({
     type: { type: String, required: true },
     value: { type: Number, default: 0 },
     note: String,
+    isShared: { type: Boolean, default: false },
     points: { type: Number, default: 0 },
     timestamp: { type: Date, default: Date.now }
 });

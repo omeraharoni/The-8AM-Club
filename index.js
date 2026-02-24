@@ -10,6 +10,7 @@ const authRoutes = require('./src/routes/authRoutes');
 const activityRoutes = require('./src/routes/activityRoutes');
 const groupRoutes = require('./src/routes/groupRoutes');
 const invitationRoutes = require('./src/routes/invitationRoutes');
+const userRoutes = require('./src/routes/userRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -55,6 +56,7 @@ app.use('/api', authRoutes);
 app.use('/api', activityRoutes); // includes /me and /activity
 app.use('/api/groups', groupRoutes);
 app.use('/api/invitations', invitationRoutes);
+app.use('/api/user', userRoutes);
 
 // --- SERVE FRONTEND ---
 const distPath = path.join(__dirname, 'client', 'dist');

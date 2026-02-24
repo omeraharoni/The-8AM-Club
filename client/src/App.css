@@ -222,34 +222,47 @@ td {
 
 .points-popup {
   position: fixed;
-  top: 50%;
+  top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: var(--primary);
   color: var(--bg);
-  padding: 0.75rem 1.5rem;
+  padding: 0.8rem 1.5rem;
   border-radius: 2rem;
-  font-weight: bold;
-  font-size: 1.5rem;
+  font-weight: 900;
+  font-size: 1.4rem;
   pointer-events: none;
-  z-index: 2000;
-  box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
-  animation: floatUpFade 1.2s forwards ease-out;
+  z-index: 9999;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
 }
 
-@keyframes floatUpFade {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -20%);
-  }
-  20% {
-    opacity: 1;
-    transform: translate(-50%, -50%);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -150%);
-  }
+.popup-left {
+  animation: floatLeftUp 2.5s forwards cubic-bezier(0.17, 0.67, 0.83, 0.67);
+}
+
+.popup-right {
+  animation: floatRightUp 2.5s forwards cubic-bezier(0.17, 0.67, 0.83, 0.67);
+  background: #22c55e !important;
+  color: white !important;
+  font-size: 1rem;
+}
+
+@keyframes floatLeftUp {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
+  40% { opacity: 1; transform: translate(-130%, -50px) scale(1.1); }
+  80% { opacity: 1; transform: translate(-155%, -125px) scale(1.05); }
+  100% { opacity: 0; transform: translate(-180%, -200px) scale(1); }
+}
+
+@keyframes floatRightUp {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
+  40% { opacity: 1; transform: translate(30%, -50px) scale(1.1); }
+  80% { opacity: 1; transform: translate(55%, -125px) scale(1.05); }
+  100% { opacity: 0; transform: translate(80%, -200px) scale(1); }
 }
 
 .card {

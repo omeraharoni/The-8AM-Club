@@ -66,11 +66,14 @@ To ensure scalability, the project is moving toward a modular structure:
 1. **Backend (MVC):** Logic is being separated into `models`, `controllers`, `routes`, and `middleware` folders.
 2. **Frontend (Componentization):** Breaking down `App.tsx` into reusable components in `src/components/` and `src/features/`.
 3. **Infrastructure:** Replacing polling with React Query and using React Router for navigation.
+4. **User Management:** Enforcing mandatory data (Email, DOB, Gender) and adding "Edit Profile" and Google OAuth support.
+5. **UI Refinement:** Centralizing logout to the Profile tab for a cleaner, more focused experience.
 
 ### API Design
 - All backend API endpoints are prefixed with `/api/`.
 - Authentication is handled via a Bearer token in the `Authorization` header.
 - Business logic (like point calculation) is being extracted into services.
+- Profile updates are managed via `PUT /api/user/profile`.
 
 ### Frontend Patterns
 - Uses **TypeScript** for type safety.
