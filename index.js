@@ -59,12 +59,12 @@ app.use('/api/invitations', invitationRoutes);
 app.use('/api/user', userRoutes);
 
 // --- SERVE FRONTEND ---
-const distPath = path.join(__dirname, 'client', 'dist');
+const distPath = path.resolve(__dirname, 'client', 'dist');
 app.use(express.static(distPath));
 
 // For any route that doesn't match an API route, send back the index.html
-app.use((req, res) => {
-    const indexPath = path.join(distPath, 'index.html');
+app.get('*', (req, res) => {
+    const indexPath = path.resolve(distPath, 'index.html');
     res.sendFile(indexPath, (err) => {
         if (err) {
             console.error('Error sending index.html:', err);
