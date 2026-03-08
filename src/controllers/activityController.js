@@ -1,17 +1,27 @@
 const Activity = require('../models/Activity');
 const User = require('../models/User');
+const Group = require('../models/Group');
+const Membership = require('../models/Membership');
 const { calculateStats } = require('../services/statsService');
 
 exports.logActivity = async (req, res) => {
     try {
-        const { type, value, note, isShared } = req.body;
+        console.log('[DEBUG] Incoming Activity Data keys:', Object.keys(req.body));
+        const { type, value, note, isShared, isSolo, proofImage } = req.body;
         const userId = req.user.id;
         const username = req.user.username;
         
         let pointsEarned = 0;
         const numValue = Number(value) || 0;
         
-        console.log(`[ACTIVITY_LOG] User: ${username}, Type: ${type}, Value: ${numValue}`);
+        // TTL for photos: Expires at the next midnight (reset every day)
+        let expiresAt = null;
+        if (proofImage) {
+            expiresAt = new Date();
+            expiresAt.setHours(23, 59, 59, 999); 
+        }
+
+        console.log(`[ACTIVITY_LOG] User: ${username}, Type: ${type}, Value: ${numValue}, Photo: ${!!proofImage}`);
 
         if (type === 'workout') {
             // WORKOUT LOGIC
@@ -19,6 +29,7 @@ exports.logActivity = async (req, res) => {
             else if (numValue >= 15) pointsEarned = 5;
             
             if (isShared) pointsEarned += 1;
+            if (proofImage) pointsEarned += 5; // BONUS FOR PROOF
             
             const activity = new Activity({
                 userId,
@@ -27,21 +38,20 @@ exports.logActivity = async (req, res) => {
                 value: numValue,
                 note: note || '',
                 isShared: !!isShared,
-                points: pointsEarned
+                isSolo: isSolo !== undefined ? isSolo : true,
+                points: pointsEarned,
+                proofImage: proofImage || null,
+                expiresAt
             });
             await activity.save();
             return res.status(201).json({ message: 'Workout logged', pointsEarned });
 
         } else if (type === 'steps') {
-            // FORCE MATH: (Steps / 1000) * 0.5
+            // ... (keeping existing steps logic)
+            // Re-assign to pointsEarned for safety
             const rawSteps = Number(value) || 0;
             const cappedSteps = Math.min(rawSteps, 15000);
-            const calculatedPoints = (cappedSteps / 1000.0) * 0.5;
-            
-            // Re-assign to pointsEarned for safety
-            pointsEarned = Number(calculatedPoints.toFixed(2));
-            
-            console.log(`[MATH_CHECK] Input: ${rawSteps}, Capped: ${cappedSteps}, Result: ${pointsEarned}`);
+            pointsEarned = Number(((cappedSteps / 1000.0) * 0.5).toFixed(2));
             
             const startOfDay = new Date();
             startOfDay.setHours(0, 0, 0, 0);
@@ -79,6 +89,7 @@ exports.logActivity = async (req, res) => {
             }
         } else if (type === 'sleep') {
             if (numValue >= 7) pointsEarned = 5;
+            // REMOVED proof bonus from sleep type to prevent duplicates with wakeup
             
             const activity = new Activity({
                 userId,
@@ -86,16 +97,81 @@ exports.logActivity = async (req, res) => {
                 type,
                 value: numValue,
                 note: note || '',
-                points: pointsEarned
+                points: pointsEarned,
+                proofImage: null, // Always null for sleep
+                expiresAt: null
             });
             await activity.save();
             return res.status(201).json({ message: 'Sleep logged', pointsEarned });
         } else if (type === 'wakeup') {
             const now = new Date();
-            if (now.getHours() < 8) pointsEarned = 5;
+            const currentHour = now.getHours();
+            const currentMin = now.getMinutes();
+            
+            // Default target is 08:00
+            let targetHour = 8;
+            let targetMin = 0;
+            let hasAnyTarget = true;
+
+            // Fetch user's groups to find the strictest wakeup target
+            const memberships = await Membership.find({ userId });
+            const groupIds = memberships.map(m => m.groupId);
+            const groups = await Group.find({ _id: { $in: groupIds } });
+
+            if (groups.length > 0) {
+                let foundSpecificTarget = false;
+                let allNone = true;
+                let earliestH = 24;
+                let earliestM = 60;
+
+                groups.forEach(g => {
+                    if (g.wakeupTimeTarget && g.wakeupTimeTarget !== 'none') {
+                        allNone = false;
+                        const [h, m] = g.wakeupTimeTarget.split(':').map(Number);
+                        if (h < earliestH || (h === earliestH && m < earliestM)) {
+                            earliestH = h;
+                            earliestM = m;
+                            foundSpecificTarget = true;
+                        }
+                    }
+                });
+
+                if (foundSpecificTarget) {
+                    targetHour = earliestH;
+                    targetMin = earliestM;
+                } else if (allNone) {
+                    hasAnyTarget = false;
+                }
+            }
+// Award points if before target
+if (hasAnyTarget && (currentHour < targetHour || (currentHour === targetHour && currentMin <= targetMin))) {
+    pointsEarned = 5;
+}
+
+// NEW: Also award sleep duration points in wakeup log if duration is provided
+if (numValue >= 7) {
+    pointsEarned += 5;
+}
+
+if (proofImage) {
+    pointsEarned += 5;
+}
+            const activity = new Activity({
+                userId,
+                username,
+                type,
+                value: numValue,
+                note: note || '',
+                isShared: !!isShared,
+                points: pointsEarned,
+                proofImage: proofImage || null,
+                expiresAt
+            });
+            await activity.save();
+            return res.status(201).json({ message: 'Wakeup logged', pointsEarned });
         }
 
-        // Generic save for other types
+        // Generic save for other types (wakeup, etc.)
         const activity = new Activity({
             userId,
             username,
@@ -103,7 +179,9 @@ exports.logActivity = async (req, res) => {
             value: numValue,
             note: note || '',
             isShared: !!isShared,
-            points: pointsEarned
+            points: pointsEarned,
+            proofImage: proofImage || null,
+            expiresAt
         });
         
         await activity.save();
@@ -131,6 +209,7 @@ exports.getMe = async (req, res) => {
                 email: user.email,
                 dob: user.dob,
                 gender: user.gender,
+                profilePic: user.profilePic,
                 weeklyPoints: stats.points,
                 workoutCount: stats.workouts,
                 wakeupCount: stats.wakeups
@@ -138,7 +217,9 @@ exports.getMe = async (req, res) => {
             activities: myActivities
         });
     } catch (err) {
-        console.error('getMe error:', err);
-        res.status(500).json({ message: 'Server error' });
+        console.error('--- GET ME ERROR ---');
+        console.error('User ID:', req.user?.id);
+        console.error('Stack:', err.stack);
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 };

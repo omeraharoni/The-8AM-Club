@@ -25,6 +25,17 @@ const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
     }
   }, [email, useEmailAsUsername, isRegistering]);
 
+  const toggleMode = () => {
+    setIsRegistering(!isRegistering);
+    setUsername('');
+    setPassword('');
+    setEmail('');
+    setDob('');
+    setGender('');
+    setUseEmailAsUsername(false);
+    setError(null);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -45,23 +56,36 @@ const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
     }
 
     try {
-      const endpoint = isRegistering ? '/register' : '/login';
+      const endpoint = isRegistering ? '/auth/register' : '/auth/login';
       const payload = isRegistering 
-        ? { username, password, email, dob, gender } 
-        : { username, password };
+        ? { 
+            username: username.trim(), 
+            password: password.trim(), 
+            email: email.trim().toLowerCase(), 
+            dob, 
+            gender 
+          } 
+        : { 
+            username: username.trim(), 
+            password: password.trim() 
+          };
       
       const res = await api.post(endpoint, payload);
       
       if (isRegistering) {
         setIsRegistering(false);
         alert('Registered successfully! Now log in.');
+        // After registration, reset form for login
+        setUsername('');
+        setPassword('');
       } else {
-        localStorage.setItem('token', res.data.token);
-        onLoginSuccess(res.data.token);
+        const token = res.data.token;
+        localStorage.setItem('token', token);
+        onLoginSuccess(token);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error occurred');
-      setTimeout(() => setError(null), 3000);
+      setTimeout(() => setError(null), 5000);
     } finally {
       setLoading(false);
     }
@@ -70,7 +94,7 @@ const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       const decoded: any = jwtDecode(credentialResponse.credential);
-      const res = await api.post('/google-login', {
+      const res = await api.post('/auth/google-login', {
         email: decoded.email,
         name: decoded.name,
         googleId: decoded.sub
@@ -121,7 +145,7 @@ const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
           {!useEmailAsUsername || !isRegistering ? (
             <input 
               className="input" 
-              placeholder="Username" 
+              placeholder={isRegistering ? "Username" : "Username or Email"} 
               value={username} 
               onChange={(e) => setUsername(e.target.value)} 
               required 
@@ -172,6 +196,12 @@ const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
           <button className="btn" type="submit" style={{ marginTop: '1.5rem' }}>
             {isRegistering ? 'Create Account' : 'Sign In'}
           </button>
+          
+          {!isRegistering && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.75rem', textAlign: 'center' }}>
+              Trouble logging in? Try using your email as the username.
+            </p>
+          )}
         </form>
       )}
 
@@ -187,7 +217,7 @@ const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
 
       <p 
         style={{ textAlign: 'center', marginTop: '1.5rem', cursor: 'pointer', fontSize: '0.875rem' }} 
-        onClick={() => setIsRegistering(!isRegistering)}
+        onClick={toggleMode}
       >
         {isRegistering ? 'Already have an account? Log in' : "Don't have an account? Register"}
       </p>

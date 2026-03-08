@@ -77,86 +77,84 @@ body {
   margin-right: 1rem;
 }
 
-.wakeup-circle-btn {
-  width: 120px;
-  height: 120px;
+/* Log Actions UI */
+.log-actions-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  margin: 2rem 0;
+  padding: 1rem;
+}
+
+.log-btn-group {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.circle-btn {
   border-radius: 50%;
-  background: var(--primary);
-  color: var(--bg);
-  border: 8px solid rgba(251, 191, 36, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
   cursor: pointer;
-  margin: 1.5rem auto;
-  box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
-  transition: transform 0.2s;
-}
-
-.wakeup-circle-btn:active {
-  transform: scale(0.95);
-}
-
-.gauge-container {
-  position: relative;
-  width: 200px;
-  height: 100px;
-  margin: 0 auto 2rem auto;
-  overflow: hidden;
-}
-
-.gauge-bg {
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  border: 20px solid var(--bg);
-  box-sizing: border-box;
-}
-
-.gauge-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  border: 20px solid #22c55e;
-  box-sizing: border-box;
-  border-top-color: transparent;
-  border-left-color: transparent;
-  transform: rotate(45deg); /* Dynamic rotation based on % */
-  transition: transform 0.5s ease-out;
-}
-
-.gauge-text {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-
-.log-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.mini-log-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 4px solid rgba(255, 255, 255, 0.05);
   background: var(--card);
-  border-radius: 1rem;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+  user-select: none;
 }
+
+.circle-btn:hover {
+  transform: translateY(-4px);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.circle-btn:active {
+  transform: scale(0.92);
+}
+
+.circle-btn.primary {
+  background: var(--primary);
+  color: var(--bg);
+  border-color: rgba(251, 191, 36, 0.2);
+  box-shadow: 0 0 25px rgba(251, 191, 36, 0.25);
+}
+
+.circle-btn.large {
+  width: 130px;
+  height: 130px;
+}
+
+.circle-btn.medium {
+  width: 85px;
+  height: 85px;
+}
+
+.circle-btn .btn-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.circle-btn.primary .btn-label {
+  color: var(--bg);
+}
+
+.circle-btn .btn-sublabel {
+  font-size: 0.6rem;
+  opacity: 0.6;
+  position: absolute;
+  bottom: -20px;
+  white-space: nowrap;
+}
+
 
 .table-container {
   overflow-x: auto;
@@ -251,6 +249,13 @@ td {
   font-size: 1rem;
 }
 
+.popup-error {
+  animation: floatRightUp 2.5s forwards cubic-bezier(0.17, 0.67, 0.83, 0.67);
+  background: #ef4444 !important;
+  color: white !important;
+  font-size: 1rem;
+}
+
 @keyframes floatLeftUp {
   0% { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
   40% { opacity: 1; transform: translate(-130%, -50px) scale(1.1); }
@@ -327,8 +332,16 @@ h1, h2 {
 .leaderboard-item {
   display: flex;
   justify-content: space-between;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  align-items: center;
+  padding: 1rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  border-radius: 0.75rem;
+}
+
+.leaderboard-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+  transform: translateX(4px);
 }
 
 .leaderboard-item:last-child {
@@ -346,14 +359,16 @@ h1, h2 {
 }
 
 .badge {
-  background: rgba(251, 191, 36, 0.1);
+  background: rgba(251, 191, 36, 0.12);
   color: var(--primary);
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 2rem;
   font-size: 0.75rem;
-  border: 1px solid transparent;
+  font-weight: 700;
+  border: 1px solid rgba(251, 191, 36, 0.2);
   transition: all 0.2s;
 }
+
 
 /* Group Tabs Scrolling */
 .group-tabs {
@@ -372,6 +387,15 @@ h1, h2 {
 .group-tabs::-webkit-scrollbar-thumb {
   background: var(--muted);
   border-radius: 10px;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @media (max-width: 480px) {

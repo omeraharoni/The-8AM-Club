@@ -1,5 +1,6 @@
 # The 8AM Club ☀️
-> **Where the early birds compete.**
+
+**Where the early birds compete.**
 
 The 8AM Club is a premium full-stack social productivity application designed to gamify healthy habits. Compete with friends, join exclusive clubs, and climb the leaderboard by logging your morning wake-ups, daily steps, and workouts.
 
@@ -46,5 +47,36 @@ The project is optimized for deployment on **Render**.
 
 ### 1. Clone the repository
 ```bash
-git clone [https://github.com/your-username/the-8am-club.git](https://github.com/your-username/the-8am-club.git)
+git clone https://github.com/omeraharoni/The-8AM-Club.git
 cd the-8am-club
+```
+
+### 2. Install dependencies
+```bash
+npm install
+```
+
+### 3. Setup Environment Variables
+Create a `.env` file in the root:
+```env
+PORT=5000
+MONGODB_URI=your_mongodb_uri
+SECRET_KEY=your_jwt_secret
+```
+
+### 4. Start the development server
+```bash
+# Root directory (Backend)
+npm start
+
+# client directory (Frontend)
+cd client
+npm run dev
+```
+
+## 📸 Core Design Philosophy
+
+The 8AM Club focuses on a **"Mobile-First"** approach. Every interaction—from the scroll-snapping carousel to the 10-minute precision time rollers—is designed to feel native and responsive, providing a high-end experience on any device.
+
+---
+*Built for the ambitious.*

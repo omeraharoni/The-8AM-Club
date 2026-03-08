@@ -1,23 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, Check, Camera, Trash2, Zap, Sun } from 'lucide-react';
+import { compressImage } from '../../utils/imageUtils';
 
 interface SleepLogOverlayProps {
   isOpen: boolean;
   onClose: () => void;
-  onLog: (data: { value: number, note: string }) => void;
+  onLog: (data: { value: number, note: string, proofImage?: string }) => void;
   isLoading?: boolean;
   initialWakeTime?: number;
 }
 
 const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }: SleepLogOverlayProps) => {
+  const [mode, setMode] = useState<'wakeup' | 'cycle'>('wakeup');
+  const [step, setStep] = useState(1);
   const [bedTime, setBedTime] = useState(23.0); 
   const [wakeTime, setWakeTime] = useState(7.0);
   const [duration, setDuration] = useState(8.0);
+  const [proofImage, setProofImage] = useState<string | undefined>(undefined);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen && initialWakeTime !== undefined) {
-      setWakeTime(initialWakeTime);
+    if (isOpen) {
+      const now = new Date();
+      const hour = now.getHours();
+      const mins = now.getMinutes();
+      const currentTime = hour + (mins / 60);
+
+      // Default to cycle at night (8 PM - 4 AM), otherwise wakeup
+      if (hour >= 20 || hour < 4) {
+        setMode('cycle');
+        setWakeTime(Math.round(currentTime * 6) / 6); // Round to nearest 10 mins
+      } else {
+        setMode('wakeup');
+        setWakeTime(currentTime); // Set to ACTUAL current time
+      }
+      
+      if (initialWakeTime !== undefined) {
+        setWakeTime(initialWakeTime);
+      }
     }
   }, [isOpen, initialWakeTime]);
 
@@ -26,6 +48,33 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
     if (diff < 0) diff += 24; 
     setDuration(parseFloat(diff.toFixed(1)));
   }, [bedTime, wakeTime]);
+
+  const updateTimeToNow = () => {
+    const now = new Date();
+    const currentTime = now.getHours() + (now.getMinutes() / 60);
+    setWakeTime(currentTime);
+  };
+
+  const resetAndClose = () => {
+    setStep(1);
+    setProofImage(undefined);
+    onClose();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        setIsCompressing(true);
+        const compressed = await compressImage(file);
+        setProofImage(compressed);
+      } catch (err) {
+        console.error("Compression failed", err);
+      } finally {
+        setIsCompressing(false);
+      }
+    }
+  };
 
   const formatTime = (h: number) => {
     const hours = Math.floor(h);
@@ -37,44 +86,171 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
 
   const handleLog = () => {
     if (isLoading) return;
+    
     onLog({
-      value: duration,
-      note: `${formatTime(bedTime)} - ${formatTime(wakeTime)}`
+      value: duration, 
+      note: mode === 'cycle' ? `${formatTime(bedTime)} - ${formatTime(wakeTime)}` : 'wakeup',
+      proofImage
     });
-    onClose();
+    resetAndClose();
   };
 
-  const Roller = ({ value, label, onChange }: { value: number, label: string, onChange: (v: number) => void }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-      <span style={{ color: 'var(--muted)', fontSize: '0.6rem', marginBottom: '0.2rem', textTransform: 'uppercase', fontWeight: 'bold' }}>{label}</span>
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        background: 'rgba(255,255,255,0.05)', 
-        borderRadius: '0.8rem',
-        padding: '0.2rem',
-        width: '100%',
-        border: '1px solid rgba(255,255,255,0.05)'
-      }}>
-        <button 
-          onClick={() => onChange((value + 0.5) % 24)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '0.2rem' }}
-        >
-          <ChevronUp size={20} />
-        </button>
-        <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'white', fontFamily: 'monospace' }}>
-          {formatTime(value)}
+  const TimeRoller = ({ value, label, onChange, step = 0.5, onNow }: { value: number, label: string, onChange: (v: number) => void, step?: number, onNow?: () => void }) => {
+    const [dragY, setDragY] = useState(0);
+    const pixelsPerStep = 45; 
+
+    const handleDrag = (_: any, info: any) => {
+      setDragY(info.offset.y);
+    };
+
+    const handleDragEnd = (_: any, info: any) => {
+      const dragDistance = info.offset.y;
+      // Increased power factor for "aggressive" scrolling
+      const velocityBoost = info.velocity.y * 0.25; 
+      const totalMovement = dragDistance + velocityBoost;
+      
+      // Calculate how many 10-min steps to move
+      const deltaSteps = Math.round(totalMovement / pixelsPerStep);
+      
+      if (deltaSteps !== 0) {
+        let newValue = value - (deltaSteps * step);
+        // Normalize value to 0-24 range
+        while (newValue < 0) newValue += 24;
+        while (newValue >= 24) newValue -= 24;
+        
+        // Final rounding to ensure we stay on the 10-min grid
+        const roundedValue = Math.round(newValue * 6) / 6;
+        onChange(roundedValue);
+      }
+      setDragY(0);
+    };
+
+    const indices = [-4, -3, -2, -1, 0, 1, 2, 3, 4];
+    
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, touchAction: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.8rem' }}>
+          <span style={{ 
+            color: 'var(--muted)', 
+            fontSize: '0.6rem', 
+            textTransform: 'uppercase', 
+            fontWeight: 'bold', 
+            letterSpacing: '1.5px',
+            opacity: 0.7
+          }}>{label}</span>
+          {onNow && (
+            <button 
+              onClick={onNow}
+              style={{ 
+                background: 'rgba(251, 191, 36, 0.1)', 
+                border: '1px solid rgba(251, 191, 36, 0.2)', 
+                color: 'var(--primary)', 
+                fontSize: '0.55rem', 
+                fontWeight: '900', 
+                padding: '1px 6px', 
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              NOW
+            </button>
+          )}
         </div>
-        <button 
-          onClick={() => onChange((value - 0.5 + 24) % 24)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '0.2rem' }}
-        >
-          <ChevronDown size={20} />
-        </button>
+        
+        <div style={{ 
+          position: 'relative',
+          height: '200px',
+          width: '100%',
+          overflow: 'hidden',
+          background: 'linear-gradient(145deg, rgba(0,0,0,0.4), rgba(0,0,0,0.2))',
+          borderRadius: '1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '1px solid rgba(255,255,255,0.05)',
+          boxShadow: 'inset 0 10px 20px rgba(0,0,0,0.5)',
+          perspective: '1000px'
+        }}>
+          <div style={{ 
+            position: 'absolute', 
+            top: '50%', 
+            left: '0', 
+            right: '0', 
+            height: '40px', 
+            transform: 'translateY(-50%)',
+            background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.05) 20%, rgba(251,191,36,0.05) 80%, transparent)',
+            borderTop: '1px solid rgba(251,191,36,0.15)',
+            borderBottom: '1px solid rgba(251,191,36,0.15)',
+            zIndex: 1,
+            pointerEvents: 'none'
+          }} />
+
+          <motion.div
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.4}
+            onDrag={handleDrag}
+            onDragEnd={handleDragEnd}
+            animate={{ y: dragY }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            style={{ 
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              cursor: 'grab',
+              zIndex: 2,
+              width: '100%',
+            }}
+            whileTap={{ cursor: 'grabbing' }}
+          >
+            {indices.map((i) => {
+              const v = (value + (i * step) + 24) % 24;
+              const distanceFromCenter = i - (dragY / pixelsPerStep);
+              const absDistance = Math.abs(distanceFromCenter);
+              const rotateX = distanceFromCenter * 25; 
+              const opacity = Math.max(0, 1 - (absDistance / 4.5)); 
+              const scale = 1 - (absDistance * 0.08); 
+              const translateY = distanceFromCenter * 2; 
+
+              return (
+                <div 
+                  key={i}
+                  style={{ 
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.4rem',
+                    fontWeight: i === 0 ? '900' : '600',
+                    color: i === 0 ? 'var(--primary)' : 'var(--muted)',
+                    fontFamily: 'monospace',
+                    opacity: opacity,
+                    transform: `rotateX(${rotateX}deg) scale(${scale}) translateY(${translateY}px)`,
+                    transformOrigin: 'center center',
+                    userSelect: 'none',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  {formatTime(v)}
+                </div>
+              );
+            })}
+          </motion.div>
+          <div style={{ 
+            position: 'absolute', 
+            inset: 0, 
+            background: 'linear-gradient(to bottom, #1e293b 0%, transparent 40%, transparent 60%, #1e293b 100%)',
+            pointerEvents: 'none',
+            zIndex: 3,
+            opacity: 0.95
+          }} />
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const isExactMode = initialWakeTime !== undefined;
 
   if (!isOpen) return null;
 
@@ -111,70 +287,231 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
               background: 'var(--card)',
               borderTopLeftRadius: '2rem',
               borderTopRightRadius: '2rem',
-              padding: '1rem 1.2rem',
+              padding: '1.5rem',
               zIndex: 2001,
-              maxHeight: '80vh',
+              maxHeight: '95vh',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: '0 -15px 35px rgba(0,0,0,0.5)',
-              border: '1px solid rgba(255,255,255,0.05)'
+              border: '1px solid rgba(255,255,255,0.05)',
+              overflowY: 'auto'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-              <h2 style={{ fontSize: '0.9rem', margin: 0, color: 'white', fontWeight: '800', opacity: 0.5 }}>Night Summary</h2>
-              <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: '0.3rem', borderRadius: '50%' }}>
-                <X size={16} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <button 
+                  onClick={() => setMode('wakeup')}
+                  style={{ 
+                    padding: '6px 16px', 
+                    borderRadius: '0.75rem', 
+                    border: 'none', 
+                    fontSize: '0.7rem', 
+                    fontWeight: '800', 
+                    background: mode === 'wakeup' ? 'var(--primary)' : 'transparent',
+                    color: mode === 'wakeup' ? 'black' : 'rgba(255,255,255,0.4)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  WAKE UP
+                </button>
+                <button 
+                  onClick={() => setMode('cycle')}
+                  style={{ 
+                    padding: '6px 16px', 
+                    borderRadius: '0.75rem', 
+                    border: 'none', 
+                    fontSize: '0.7rem', 
+                    fontWeight: '800', 
+                    background: mode === 'cycle' ? 'var(--primary)' : 'transparent',
+                    color: mode === 'cycle' ? 'black' : 'rgba(255,255,255,0.4)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  MANUAL
+                </button>
+              </div>
+              <button onClick={resetAndClose} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: '0.5rem', borderRadius: '50%' }}>
+                <X size={20} />
               </button>
             </div>
 
-            <div style={{ textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
-              <p style={{ margin: '0 0 0.4rem 0', color: 'var(--primary)', fontSize: '1.3rem', fontWeight: '900', lineHeight: 1.1 }}>How did you sleep, Champ?</p>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ fontSize: '2.8rem', fontWeight: '900', color: 'white', lineHeight: 1, letterSpacing: '-2px' }}>
-                  {duration}<span style={{ fontSize: '1rem', color: 'var(--muted)', marginLeft: '2px' }}>h</span>
+            {step === 1 && (
+              <motion.div 
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                style={{ textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center' }}
+              >
+                <div style={{ marginBottom: '1rem' }}>
+                  <p style={{ margin: '0', color: 'var(--primary)', fontSize: '1.2rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    {mode === 'wakeup' ? 'Good Morning, Champ! ☀️' : 'Manual Sleep Cycle 🌙'}
+                  </p>
+                  <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0.25rem 0 0 0' }}>
+                    {mode === 'wakeup' ? 'Confirm your rest to log your rise.' : 'Log your full sleep duration below.'}
+                  </p>
                 </div>
-                {duration >= 7 && (
-                   <div style={{ color: '#22c55e', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '0.2rem', background: 'rgba(34, 197, 94, 0.1)', padding: '0.1rem 0.6rem', borderRadius: '2rem' }}>
-                     ✓ Goal Reached (5 pts)
-                   </div>
-                )}
-              </div>
-              
-              <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.6rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.03)', alignItems: 'center' }}>
-                <Roller value={bedTime} label="Bedtime" onChange={setBedTime} />
-                <div style={{ color: 'var(--muted)', fontSize: '0.8rem', fontWeight: 'bold', paddingTop: '0.8rem', opacity: 0.3 }}>to</div>
-                <Roller value={wakeTime} label="Wake up" onChange={setWakeTime} />
-              </div>
-            </div>
 
-            <button 
-              onClick={handleLog}
-              disabled={isLoading}
-              className="btn" 
-              style={{ 
-                marginTop: '0.8rem',
-                padding: '0.8rem',
-                fontSize: '1rem',
-                fontWeight: '900',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                opacity: isLoading ? 0.7 : 1,
-                boxShadow: '0 8px 25px rgba(251, 191, 36, 0.3)',
-                borderRadius: '0.8rem'
-              }}
-            >
-              {isLoading ? (
-                <div className="spinner" style={{ width: '18px', height: '18px', border: '2px solid white', borderTopColor: 'transparent' }} />
-              ) : (
-                <>
-                  <Check size={20} strokeWidth={3} /> 
-                  BATTERY LOADED! 🔋
-                </>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(251, 191, 36, 0.05)', padding: '1.5rem', borderRadius: '2rem', border: '1px solid rgba(251, 191, 36, 0.1)', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '3rem', fontWeight: '900', color: 'white', lineHeight: 1, letterSpacing: '-2px' }}>
+                    {duration}<span style={{ fontSize: '1.2rem', color: 'var(--muted)', marginLeft: '4px', fontWeight: '500' }}>h slept</span>
+                  </div>
+                  {duration >= 7 ? (
+                    <div style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: '900', marginTop: '0.75rem', background: 'rgba(34, 197, 94, 0.1)', padding: '0.25rem 0.75rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Check size={14} strokeWidth={3} /> BATTERY LOADED (+5 pts)
+                    </div>
+                  ) : (
+                    <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '0.75rem' }}>
+                      Goal: 7h+ for bonus points
+                    </div>
+                  )}
+                </div>
+                
+                <div style={{ display: 'flex', gap: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1.25rem', borderRadius: '1.5rem', border: '1px solid rgba(255,255,255,0.03)', alignItems: 'center' }}>
+                  <TimeRoller value={bedTime} label="Bedtime" onChange={setBedTime} step={1/6} />
+                  <div style={{ color: 'var(--muted)', fontSize: '0.8rem', fontWeight: 'bold', opacity: 0.2, marginTop: '20px' }}>to</div>
+                  <div style={{ flex: 1 }}>
+                    {mode === 'wakeup' ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ 
+                          color: 'var(--muted)', 
+                          fontSize: '0.6rem', 
+                          marginBottom: '0.8rem', 
+                          textTransform: 'uppercase', 
+                          fontWeight: 'bold', 
+                          letterSpacing: '1.5px',
+                          opacity: 0.7
+                        }}>Wake up</span>
+                        <div 
+                          onClick={updateTimeToNow}
+                          style={{ 
+                            height: '200px', 
+                            width: '100%', 
+                            background: 'rgba(251, 191, 36, 0.05)', 
+                            borderRadius: '1.5rem', 
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            border: '2px solid var(--primary)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <span style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--primary)', fontFamily: 'monospace' }}>{formatTime(wakeTime)}</span>
+                          <span style={{ fontSize: '0.6rem', color: 'var(--primary)', fontWeight: '800', marginTop: '0.5rem' }}>NOW (TAP TO SYNC)</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <TimeRoller 
+                        value={wakeTime} 
+                        label="Wake up" 
+                        onChange={setWakeTime} 
+                        step={1/6}
+                        onNow={updateTimeToNow}
+                      />
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 2 && (
+              <motion.div
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                style={{ textAlign: 'center', flex: 1 }}
+              >
+                <div style={{ background: 'rgba(251, 191, 36, 0.1)', padding: '1.5rem', borderRadius: '1.5rem', marginBottom: '1.5rem', border: '1px dashed var(--primary)' }}>
+                  <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>EARLY RISE BONUS</h3>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--muted)', fontStyle: 'italic' }}>
+                    "The world belongs to those who wake up first. ☀️ Snap a proof photo now for +5 Bonus Points!"
+                  </p>
+                </div>
+
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="user"
+                  style={{ display: 'none' }}
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                />
+
+                {proofImage ? (
+                  <div style={{ position: 'relative', width: '200px', height: '200px', margin: '0 auto', borderRadius: '1rem', overflow: 'hidden' }}>
+                    <img src={proofImage} alt="Proof Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <button 
+                      onClick={() => setProofImage(undefined)}
+                      style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', color: 'white', padding: '5px', cursor: 'pointer' }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isCompressing}
+                    style={{
+                      width: '100%',
+                      padding: '3rem 1rem',
+                      borderRadius: '1.5rem',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '2px dashed rgba(255,255,255,0.1)',
+                      color: 'var(--muted)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary)', color: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Camera size={32} />
+                    </div>
+                    {isCompressing ? 'Compressing Proof...' : 'Take Proof Photo'}
+                  </button>
+                )}
+                
+                <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--muted)' }}>
+                  {proofImage ? '✅ Proof verified! You will receive +5 bonus points.' : 'Skip the photo and log without bonus points.'}
+                </p>
+              </motion.div>
+            )}
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+              {step === 2 && (
+                <button 
+                  onClick={() => setStep(1)}
+                  className="btn" 
+                  style={{ background: '#475569', flex: 1 }}
+                >
+                  Back
+                </button>
               )}
-            </button>
+              <button 
+                onClick={step === 1 ? () => setStep(2) : handleLog}
+                disabled={isLoading || isCompressing}
+                className="btn" 
+                style={{ 
+                  flex: 2,
+                  fontWeight: '900',
+                  opacity: (isLoading || isCompressing) ? 0.7 : 1,
+                  boxShadow: '0 8px 25px rgba(251, 191, 36, 0.3)',
+                  borderRadius: '1.25rem',
+                  padding: '1.25rem',
+                  fontSize: '1.1rem'
+                }}
+              >
+                {step === 1 ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                    <Zap size={22} fill="black" />
+                    {mode === 'wakeup' ? "I'M AWAKE NOW! ☀️" : "LOG SLEEP CYCLE 🔋"}
+                  </div>
+                ) : (
+                  proofImage ? 'Post with Proof 🔋' : 'BATTERY LOADED! 🔋'
+                )}
+              </button>
+            </div>
           </motion.div>
         </>
       )}

@@ -5,12 +5,38 @@ const SECRET_KEY = process.env.SECRET_KEY || '8am-club-secret';
 
 exports.register = async (req, res) => {
     try {
-        const { username, password, email, dob, gender } = req.body;
+        let { username, password, email, dob, gender } = req.body;
         
-        // Basic unique checks
-        const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+        // Trim and normalize
+        username = username?.trim();
+        email = email?.trim()?.toLowerCase();
+        password = password?.trim();
+
+        if (!username || !email || !password) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+        
+        // Escape regex special characters
+        const escapedUsername = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        // Case-insensitive unique checks
+        const existingUser = await User.findOne({ 
+            $or: [
+                { username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') } }, 
+                { email }
+            ] 
+        });
+        
         if (existingUser) {
-            const field = existingUser.username === username ? 'Username' : 'Email';
+            // Allow linking if email matches (especially for Google users)
+            if (existingUser.email.toLowerCase() === email.toLowerCase()) {
+                const hashedPassword = await bcrypt.hash(password, 10);
+                existingUser.password = hashedPassword;
+                existingUser.username = username; // Update to the requested username
+                await existingUser.save();
+                return res.status(200).json({ message: 'Account linked successfully! You can now log in with either method.' });
+            }
+            const field = existingUser.email === email ? 'Email' : 'Username';
             return res.status(400).json({ message: `${field} already exists` });
         }
         
@@ -32,11 +58,43 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
     try {
-        const { username, password } = req.body;
-        const user = await User.findOne({ username });
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        let { username, password } = req.body;
+        
+        // Trim and normalize
+        const identifier = username?.trim();
+        
+        if (!identifier || !password) {
+            return res.status(400).json({ message: 'Username/Email and password are required' });
+        }
+
+        console.log(`[LOGIN_ATTEMPT] Input: "${identifier}"`);
+        
+        // Escape regex special characters
+        const escapedQuery = identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        // Lookup by username OR email (case-insensitive)
+        const user = await User.findOne({ 
+            $or: [
+                { username: { $regex: new RegExp(`^${escapedQuery}$`, 'i') } },
+                { email: { $regex: new RegExp(`^${escapedQuery}$`, 'i') } }
+            ]
+        });
+
+        if (!user) {
+            console.warn(`[LOGIN_FAILED] User not found: "${identifier}"`);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            if (user.googleId) {
+                return res.status(400).json({ message: 'This account is linked to Google. Please sign in with Google.' });
+            }
+            console.warn(`[LOGIN_FAILED] Password mismatch for user: "${user.username}"`);
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        console.log(`[LOGIN_SUCCESS] User: "${user.username}"`);
         const token = jwt.sign({ id: user._id, username: user.username }, SECRET_KEY);
         res.json({ token, user: { id: user._id, username: user.username } });
     } catch (err) {
@@ -48,22 +106,35 @@ exports.login = async (req, res) => {
 exports.googleLogin = async (req, res) => {
     try {
         const { email, name, googleId } = req.body;
+        const normalizedEmail = email.toLowerCase();
         
-        let user = await User.findOne({ $or: [{ googleId }, { email }] });
+        // 1. Find user by googleId OR email
+        let user = await User.findOne({ 
+            $or: [
+                { googleId }, 
+                { email: normalizedEmail }
+            ] 
+        });
         
         if (!user) {
-            // Create a new user if they don't exist
+            // 2. Create NEW user only if they don't exist at all
+            console.log(`[GOOGLE_AUTH] Creating new user for: ${normalizedEmail}`);
             user = new User({
-                username: name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000),
-                email,
+                username: name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 100),
+                email: normalizedEmail,
                 googleId,
-                password: await bcrypt.hash(Math.random().toString(36), 10), // Random password for social login
+                // Placeholder password for social users
+                password: await bcrypt.hash(Math.random().toString(36), 10),
             });
             await user.save();
-        } else if (!user.googleId) {
-            // Link Google ID if user exists with same email but no Google ID
-            user.googleId = googleId;
-            await user.save();
+        } else {
+            // 3. If user exists but doesn't have googleId linked, link it now
+            if (!user.googleId) {
+                console.log(`[GOOGLE_AUTH] Linking Google ID to existing account: ${normalizedEmail}`);
+                user.googleId = googleId;
+                await user.save();
+            }
+            console.log(`[GOOGLE_AUTH] Welcome back: ${user.username}`);
         }
 
         const token = jwt.sign({ id: user._id, username: user.username }, SECRET_KEY);
