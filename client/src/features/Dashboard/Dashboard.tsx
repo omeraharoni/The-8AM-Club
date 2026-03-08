@@ -378,6 +378,20 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
     }
   });
 
+  const applyPenaltyMutation = useMutation({
+    mutationFn: (data: { userId: string, groupId: string, amount: number, reason: string }) => 
+      api.post('/activity/penalty', data),
+    onSuccess: (res) => {
+      console.log('[DEBUG] Penalty success:', res.data);
+      queryClient.invalidateQueries({ queryKey: ['leaderboard', selectedGroupId] });
+      addPopup(res.data.message || 'Penalty applied! ⚖️', 'popup-right');
+    },
+    onError: (err: any) => {
+      console.error('[DEBUG] Penalty error:', err.response?.data || err.message);
+      addPopup(err.response?.data?.message || 'Failed to apply penalty', 'popup-error');
+    }
+  });
+
   // --- HANDLERS ---
 
   const handleLog = (type: string, val: string) => {
@@ -940,6 +954,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
               onLeaveGroup={(id) => leaveGroupMutation.mutate(id)}
               onRemoveMember={(groupId, userId) => removeMemberMutation.mutate({ groupId, userId })}
               onDeleteGroup={(id) => deleteGroupMutation.mutate(id)}
+              onApplyPenalty={(data) => applyPenaltyMutation.mutate(data)}
               pendingRequests={pendingRequests}
             />
           } />

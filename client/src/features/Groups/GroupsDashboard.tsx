@@ -16,7 +16,8 @@ import {
   PanelLeftOpen,
   Users as UsersIcon,
   Circle,
-  Check
+  Check,
+  Minus
 } from 'lucide-react';
 
 interface GroupsDashboardProps {
@@ -36,6 +37,7 @@ interface GroupsDashboardProps {
   onLeaveGroup: (id: string) => void;
   onRemoveMember: (groupId: string, userId: string) => void;
   onDeleteGroup: (id: string) => void;
+  onApplyPenalty: (data: { userId: string, groupId: string, amount: number, reason: string }) => void;
   pendingRequests: any[];
 }
 
@@ -56,6 +58,7 @@ const GroupsDashboard = ({
   onLeaveGroup,
   onRemoveMember,
   onDeleteGroup,
+  onApplyPenalty,
   pendingRequests
 }: GroupsDashboardProps) => {
   const [joinCodeInput, setJoinCodeInput] = useState('');
@@ -68,6 +71,9 @@ const GroupsDashboard = ({
   const [isCodeExposed, setIsCodeExposed] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<{id: string, name: string} | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [penaltyTarget, setPenaltyTarget] = useState<{id: string, name: string} | null>(null);
+  const [penaltyAmount, setPenaltyAmount] = useState(10);
+  const [penaltyReason, setReason] = useState('');
 
   // Sync hub view when selectedGroupId changes
   useEffect(() => {
@@ -945,14 +951,26 @@ const GroupsDashboard = ({
                                 <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>{m.username}</span>
                                 {m.userId === selectedGroup.ownerId && <ShieldCheck size={12} style={{ color: 'var(--primary)' }} />}
                               </div>
-                                                          {m.userId !== user?.id && m.userId !== selectedGroup.ownerId && (
-                                                            <button 
-                                                              onClick={() => setMemberToRemove({ id: m.userId, name: m.username })}
-                                                              style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', opacity: 0.6 }}
-                                                            >
-                                                              <Trash2 size={14} />
-                                                            </button>
-                                                          )}                            </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                {isOwner && (
+                                  <button 
+                                    onClick={() => setPenaltyTarget({ id: m.userId, name: m.username })}
+                                    style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '4px', opacity: 0.6 }}
+                                    title="Deduct Points"
+                                  >
+                                    <Minus size={14} />
+                                  </button>
+                                )}
+                                {m.userId !== user?.id && m.userId !== selectedGroup.ownerId && (
+                                  <button 
+                                    onClick={() => setMemberToRemove({ id: m.userId, name: m.username })}
+                                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', opacity: 0.6 }}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -1114,6 +1132,135 @@ const GroupsDashboard = ({
                   style={{ width: '100%', padding: '1rem', borderRadius: '1.25rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem' }}
                 >
                   CANCEL
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {penaltyTarget && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setPenaltyTarget(null)}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: '340px',
+                background: '#1e293b',
+                borderRadius: '2rem',
+                padding: '2rem',
+                border: '1px solid rgba(251, 191, 36, 0.2)',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+                zIndex: 6001
+              }}
+            >
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(251, 191, 36, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                <Minus size={32} style={{ color: 'var(--primary)' }} />
+              </div>
+              <h3 style={{ fontSize: '1.5rem', color: 'white', fontWeight: '900', marginBottom: '0.5rem', margin: 0 }}>Penalty ⚖️</h3>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '1.5rem' }}>
+                Deduct points from <b>{penaltyTarget.name}</b>
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', textAlign: 'left' }}>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '1px' }}>Points to Deduct</label>
+                  <div style={{ position: 'relative', marginTop: '0.5rem' }}>
+                    <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#ef4444', fontWeight: '900', fontSize: '1.2rem' }}>-</span>
+                    <input 
+                      type="number" 
+                      className="input" 
+                      value={penaltyAmount || ''} 
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : Math.abs(Number(e.target.value));
+                        setPenaltyAmount(val);
+                      }}
+                      style={{ paddingLeft: '2rem', fontSize: '1.2rem', fontWeight: '900', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                    />
+                  </div>
+                  
+                  {/* Quick select chips */}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                    {[5, 10, 20, 50].map(amt => (
+                      <button 
+                        key={amt}
+                        onClick={() => setPenaltyAmount(amt)}
+                        style={{ 
+                          flex: 1, 
+                          padding: '0.4rem', 
+                          borderRadius: '0.75rem', 
+                          background: penaltyAmount === amt ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.03)', 
+                          border: `1px solid ${penaltyAmount === amt ? '#ef4444' : 'rgba(255,255,255,0.05)'}`,
+                          color: penaltyAmount === amt ? '#ef4444' : 'var(--muted)',
+                          fontSize: '0.75rem',
+                          fontWeight: '800',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {amt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '1px' }}>Reason (Optional)</label>
+                  <input 
+                    className="input" 
+                    placeholder="e.g. Missed wakeup goal"
+                    value={penaltyReason} 
+                    onChange={(e) => setReason(e.target.value)}
+                    style={{ marginTop: '0.5rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                <button 
+                  onClick={() => setPenaltyTarget(null)}
+                  style={{ flex: 1, padding: '1rem', borderRadius: '1.25rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  CANCEL
+                </button>
+                <button 
+                  onClick={() => {
+                    if (penaltyAmount > 0) {
+                      onApplyPenalty({
+                        userId: penaltyTarget.id,
+                        groupId: selectedGroupId!,
+                        amount: penaltyAmount,
+                        reason: penaltyReason
+                      });
+                      setPenaltyTarget(null);
+                      setReason('');
+                      setPenaltyAmount(10);
+                    }
+                  }}
+                  disabled={!penaltyAmount || penaltyAmount <= 0}
+                  style={{ 
+                    flex: 1, 
+                    padding: '1rem', 
+                    borderRadius: '1.25rem', 
+                    background: (penaltyAmount > 0) ? '#ef4444' : 'rgba(239, 68, 68, 0.3)', 
+                    color: 'white', 
+                    border: 'none', 
+                    fontWeight: '900', 
+                    cursor: (penaltyAmount > 0) ? 'pointer' : 'not-allowed' 
+                  }}
+                >
+                  DEDUCT
                 </button>
               </div>
             </motion.div>

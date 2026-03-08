@@ -193,6 +193,46 @@ if (proofImage) {
     }
 };
 
+exports.applyPenalty = async (req, res) => {
+    try {
+        const { userId, groupId, amount, reason } = req.body;
+        const adminId = req.user.id;
+
+        // Verify the group exists
+        const group = await Group.findById(groupId);
+        if (!group) return res.status(404).json({ message: 'Group not found' });
+
+        // Verify the requester is the group owner
+        if (group.ownerId.toString() !== adminId.toString()) {
+            return res.status(403).json({ message: 'Only group owners can apply penalties' });
+        }
+
+        // Verify the target user exists
+        const targetUser = await User.findById(userId);
+        if (!targetUser) return res.status(404).json({ message: 'Target user not found' });
+
+        // Create a penalty activity
+        const penalty = new Activity({
+            userId,
+            username: targetUser.username,
+            type: 'penalty',
+            points: -Math.abs(Number(amount)), // Ensure it's negative
+            note: reason || 'Points deducted by group leader',
+            isSolo: false
+        });
+
+        await penalty.save();
+
+        res.status(201).json({ 
+            message: `Penalty of ${amount} points applied to ${targetUser.username}`,
+            pointsDeducted: amount
+        });
+    } catch (err) {
+        console.error('Apply penalty error:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 exports.getMe = async (req, res) => {
     try {
         const stats = await calculateStats(req.user.id);
