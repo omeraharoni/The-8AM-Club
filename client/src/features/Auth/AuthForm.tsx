@@ -113,6 +113,12 @@ const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
         {isRegistering ? 'Join the community of winners.' : 'Ready to dominate the day?'}
       </p>
 
+      {isRegistering && (
+        <div style={{ background: 'rgba(251, 191, 36, 0.05)', padding: '0.75rem', borderRadius: '0.75rem', marginBottom: '1rem', border: '1px dashed var(--primary)', fontSize: '0.75rem', textAlign: 'center' }}>
+          💡 Already used Google? Use your <b>Google Email</b> here to set a password!
+        </div>
+      )}
+
       {error && <div className="error-toast">{error}</div>}
 
       {loading ? (
