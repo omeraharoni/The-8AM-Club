@@ -22,6 +22,19 @@ const userRoutes = require('./src/routes/userRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Force HTTPS and fix backslash URL issues in production
+app.use((req, res, next) => {
+    if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-proto'] !== 'https') {
+        return res.redirect(`https://${req.get('host')}${req.url}`);
+    }
+    // Fix the /%5C (backslash) issue if it occurs
+    if (req.url === '/%5C' || req.url === '/\\') {
+        console.log('[DEBUG] Redirecting broken backslash URL to root');
+        return res.redirect('/');
+    }
+    next();
+});
+
 // Connect to MongoDB
 const uri = process.env.MONGODB_URI;
 if (!uri) {
