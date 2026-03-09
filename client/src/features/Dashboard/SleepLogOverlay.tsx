@@ -489,18 +489,22 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
                     {/* CAMERA BUTTON */}
-                    <label style={{ 
-                      flex: 1, 
-                      padding: '1.5rem', 
-                      borderRadius: '1.5rem', 
-                      background: 'rgba(251, 191, 36, 0.08)', 
-                      border: '1.5px solid rgba(251, 191, 36, 0.25)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1.25rem',
-                      cursor: isCompressing ? 'wait' : 'pointer'
-                    }}>
+                    <label 
+                      htmlFor="sleep-camera-input"
+                      style={{ 
+                        flex: 1, 
+                        padding: '1.5rem', 
+                        borderRadius: '1.5rem', 
+                        background: 'rgba(251, 191, 36, 0.08)', 
+                        border: '1.5px solid rgba(251, 191, 36, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1.25rem',
+                        cursor: isCompressing ? 'wait' : 'pointer'
+                      }}
+                    >
                       <input
+                        id="sleep-camera-input"
                         type="file"
                         accept="image/*"
                         capture="environment"
@@ -518,18 +522,22 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
                     </label>
 
                     {/* LIBRARY BUTTON */}
-                    <label style={{ 
-                      flex: 1, 
-                      padding: '1.5rem', 
-                      borderRadius: '1.5rem', 
-                      background: 'rgba(255,255,255,0.03)', 
-                      border: '1.5px solid rgba(255,255,255,0.08)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1.25rem',
-                      cursor: isCompressing ? 'wait' : 'pointer'
-                    }}>
+                    <label 
+                      htmlFor="sleep-library-input"
+                      style={{ 
+                        flex: 1, 
+                        padding: '1.5rem', 
+                        borderRadius: '1.5rem', 
+                        background: 'rgba(255,255,255,0.03)', 
+                        border: '1.5px solid rgba(255,255,255,0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1.25rem',
+                        cursor: isCompressing ? 'wait' : 'pointer'
+                      }}
+                    >
                       <input
+                        id="sleep-library-input"
                         type="file"
                         accept="image/*"
                         style={{ display: 'none' }}

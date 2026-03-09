@@ -313,18 +313,22 @@ const WorkoutLogOverlay = ({ isOpen, onClose, onLog, initialType }: WorkoutLogOv
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
                     {/* CAMERA BUTTON */}
-                    <label style={{ 
-                      flex: 1, 
-                      padding: '1.5rem', 
-                      borderRadius: '1.5rem', 
-                      background: 'rgba(251, 191, 36, 0.08)', 
-                      border: '1.5px solid rgba(251, 191, 36, 0.25)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1.25rem',
-                      cursor: isCompressing ? 'wait' : 'pointer'
-                    }}>
+                    <label 
+                      htmlFor="workout-camera-input"
+                      style={{ 
+                        flex: 1, 
+                        padding: '1.5rem', 
+                        borderRadius: '1.5rem', 
+                        background: 'rgba(251, 191, 36, 0.08)', 
+                        border: '1.5px solid rgba(251, 191, 36, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1.25rem',
+                        cursor: isCompressing ? 'wait' : 'pointer'
+                      }}
+                    >
                       <input 
+                        id="workout-camera-input"
                         type="file" 
                         accept="image/*" 
                         capture="environment"
@@ -342,18 +346,22 @@ const WorkoutLogOverlay = ({ isOpen, onClose, onLog, initialType }: WorkoutLogOv
                     </label>
 
                     {/* LIBRARY BUTTON */}
-                    <label style={{ 
-                      flex: 1, 
-                      padding: '1.5rem', 
-                      borderRadius: '1.5rem', 
-                      background: 'rgba(255,255,255,0.03)', 
-                      border: '1.5px solid rgba(255,255,255,0.08)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1.25rem',
-                      cursor: isCompressing ? 'wait' : 'pointer'
-                    }}>
+                    <label 
+                      htmlFor="workout-library-input"
+                      style={{ 
+                        flex: 1, 
+                        padding: '1.5rem', 
+                        borderRadius: '1.5rem', 
+                        background: 'rgba(255,255,255,0.03)', 
+                        border: '1.5px solid rgba(255,255,255,0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1.25rem',
+                        cursor: isCompressing ? 'wait' : 'pointer'
+                      }}
+                    >
                       <input 
+                        id="workout-library-input"
                         type="file" 
                         accept="image/*" 
                         style={{ display: 'none' }}
