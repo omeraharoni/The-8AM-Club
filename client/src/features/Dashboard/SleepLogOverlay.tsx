@@ -353,64 +353,100 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
               <motion.div 
                 initial={{ x: 20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                style={{ textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center' }}
+                style={{ textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', gap: '2rem', justifyContent: 'center', padding: '1rem 0' }}
               >
-                <div style={{ marginBottom: '1rem' }}>
-                  <p style={{ margin: '0', color: 'var(--primary)', fontSize: '1.2rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                <div>
+                  <p style={{ margin: '0', color: 'var(--primary)', fontSize: '1.4rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '2px' }}>
                     {mode === 'wakeup' ? 'Good Morning, Champ! ☀️' : 'Manual Sleep Cycle 🌙'}
                   </p>
-                  <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0.25rem 0 0 0' }}>
+                  <p style={{ color: 'var(--muted)', fontSize: '0.95rem', marginTop: '0.75rem', lineHeight: '1.5' }}>
                     {mode === 'wakeup' ? 'Confirm your rest to log your rise.' : 'Log your full sleep duration below.'}
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(251, 191, 36, 0.05)', padding: '1.5rem', borderRadius: '2rem', border: '1px solid rgba(251, 191, 36, 0.1)', marginBottom: '0.5rem' }}>
-                  <div style={{ fontSize: '3rem', fontWeight: '900', color: 'white', lineHeight: 1, letterSpacing: '-2px' }}>
-                    {duration}<span style={{ fontSize: '1.2rem', color: 'var(--muted)', marginLeft: '4px', fontWeight: '500' }}>h slept</span>
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  background: 'linear-gradient(145deg, rgba(251, 191, 36, 0.08), rgba(251, 191, 36, 0.02))', 
+                  padding: '2.5rem 1.5rem', 
+                  borderRadius: '2.5rem', 
+                  border: '1px solid rgba(251, 191, 36, 0.15)',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+                }}>
+                  <div style={{ fontSize: '4rem', fontWeight: '900', color: 'white', lineHeight: 0.8, letterSpacing: '-3px' }}>
+                    {duration}<span style={{ fontSize: '1.4rem', color: 'var(--muted)', marginLeft: '8px', fontWeight: '600', letterSpacing: '0' }}>h slept</span>
                   </div>
                   {duration >= 7 ? (
-                    <div style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: '900', marginTop: '0.75rem', background: 'rgba(34, 197, 94, 0.1)', padding: '0.25rem 0.75rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <Check size={14} strokeWidth={3} /> BATTERY LOADED (+5 pts)
+                    <div style={{ 
+                      color: '#22c55e', 
+                      fontSize: '0.8rem', 
+                      fontWeight: '900', 
+                      marginTop: '1.5rem', 
+                      background: 'rgba(34, 197, 94, 0.12)', 
+                      padding: '0.5rem 1.2rem', 
+                      borderRadius: '2rem', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.5rem',
+                      border: '1px solid rgba(34, 197, 94, 0.2)'
+                    }}>
+                      <Check size={16} strokeWidth={3} /> BATTERY FULLY LOADED (+5 pts)
                     </div>
                   ) : (
-                    <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '0.75rem' }}>
-                      Goal: 7h+ for bonus points
+                    <div style={{ 
+                      color: 'var(--muted)', 
+                      fontSize: '0.75rem', 
+                      fontWeight: '600', 
+                      marginTop: '1.5rem',
+                      opacity: 0.6
+                    }}>
+                      Goal: 7h+ for power bonus
                     </div>
                   )}
                 </div>
                 
-                <div style={{ display: 'flex', gap: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1.25rem', borderRadius: '1.5rem', border: '1px solid rgba(255,255,255,0.03)', alignItems: 'center' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '1.5rem', 
+                  background: 'rgba(0,0,0,0.3)', 
+                  padding: '1.5rem', 
+                  borderRadius: '2rem', 
+                  border: '1px solid rgba(255,255,255,0.05)', 
+                  alignItems: 'center' 
+                }}>
                   <TimeRoller value={bedTime} label="Bedtime" onChange={setBedTime} step={1/6} />
-                  <div style={{ color: 'var(--muted)', fontSize: '0.8rem', fontWeight: 'bold', opacity: 0.2, marginTop: '20px' }}>to</div>
+                  <div style={{ color: 'var(--muted)', fontSize: '1rem', fontWeight: 'bold', opacity: 0.1, marginTop: '20px' }}>→</div>
                   <div style={{ flex: 1 }}>
                     {mode === 'wakeup' ? (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <span style={{ 
                           color: 'var(--muted)', 
-                          fontSize: '0.6rem', 
-                          marginBottom: '0.8rem', 
+                          fontSize: '0.65rem', 
+                          marginBottom: '1rem', 
                           textTransform: 'uppercase', 
-                          fontWeight: 'bold', 
-                          letterSpacing: '1.5px',
-                          opacity: 0.7
+                          fontWeight: '800', 
+                          letterSpacing: '2px',
+                          opacity: 0.6
                         }}>Wake up</span>
                         <div 
                           onClick={updateTimeToNow}
                           style={{ 
                             height: '200px', 
                             width: '100%', 
-                            background: 'rgba(251, 191, 36, 0.05)', 
+                            background: 'rgba(251, 191, 36, 0.03)', 
                             borderRadius: '1.5rem', 
                             display: 'flex', 
                             flexDirection: 'column',
                             alignItems: 'center', 
                             justifyContent: 'center',
                             border: '2px solid var(--primary)',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            boxShadow: '0 0 20px rgba(251, 191, 36, 0.1)'
                           }}
                         >
-                          <span style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--primary)', fontFamily: 'monospace' }}>{formatTime(wakeTime)}</span>
-                          <span style={{ fontSize: '0.6rem', color: 'var(--primary)', fontWeight: '800', marginTop: '0.5rem' }}>NOW (TAP TO SYNC)</span>
+                          <span style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--primary)', fontFamily: 'monospace' }}>{formatTime(wakeTime)}</span>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: '900', marginTop: '0.75rem', letterSpacing: '1px' }}>SYNC NOW</span>
                         </div>
                       </div>
                     ) : (
