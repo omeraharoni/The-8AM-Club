@@ -99,16 +99,28 @@ const WorkoutLogOverlay = ({ isOpen, onClose, onLog, initialType }: WorkoutLogOv
               background: 'var(--card)',
               borderTopLeftRadius: '2rem',
               borderTopRightRadius: '2rem',
-              padding: '2rem',
+              padding: '1.5rem',
+              paddingTop: 'calc(1.5rem + env(safe-area-inset-top))',
               zIndex: 2001,
-              maxHeight: '95vh',
+              maxHeight: '82vh',
               overflowY: 'auto',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: '0 -10px 25px rgba(0,0,0,0.3)'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ 
+              position: 'sticky',
+              top: '-1.5rem', 
+              background: 'var(--card)',
+              padding: '1rem 0',
+              zIndex: 10,
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: '1rem',
+              borderBottom: '1px solid rgba(255,255,255,0.05)'
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: step >= 1 ? 'var(--primary)' : 'var(--muted)' }} />
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: step >= 2 ? 'var(--primary)' : 'var(--muted)' }} />
