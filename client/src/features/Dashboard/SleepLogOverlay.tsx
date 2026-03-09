@@ -428,10 +428,9 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
                   </p>
                 </div>
 
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  capture="user"
+                <input
+                  type="file"
+                  accept="image/*"
                   style={{ display: 'none' }}
                   ref={fileInputRef}
                   onChange={handleFileChange}
@@ -440,7 +439,7 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
                 {proofImage ? (
                   <div style={{ position: 'relative', width: '200px', height: '200px', margin: '0 auto', borderRadius: '1rem', overflow: 'hidden' }}>
                     <img src={proofImage} alt="Proof Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button 
+                    <button
                       onClick={() => setProofImage(undefined)}
                       style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', color: 'white', padding: '5px', cursor: 'pointer' }}
                     >
@@ -448,7 +447,7 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
                     </button>
                   </div>
                 ) : (
-                  <button 
+                  <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isCompressing}
                     style={{
@@ -468,10 +467,9 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
                     <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary)', color: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Camera size={32} />
                     </div>
-                    {isCompressing ? 'Compressing Proof...' : 'Take Proof Photo'}
+                    {isCompressing ? 'Compressing Proof...' : 'Take or Upload Proof Photo'}
                   </button>
-                )}
-                
+                )}                
                 <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--muted)' }}>
                   {proofImage ? '✅ Proof verified! You will receive +5 bonus points.' : 'Skip the photo and log without bonus points.'}
                 </p>

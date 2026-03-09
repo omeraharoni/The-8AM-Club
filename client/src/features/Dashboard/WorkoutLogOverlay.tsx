@@ -291,7 +291,6 @@ const WorkoutLogOverlay = ({ isOpen, onClose, onLog, initialType }: WorkoutLogOv
                 <input 
                   type="file" 
                   accept="image/*" 
-                  capture="environment"
                   style={{ display: 'none' }}
                   ref={fileInputRef}
                   onChange={handleFileChange}
@@ -328,7 +327,7 @@ const WorkoutLogOverlay = ({ isOpen, onClose, onLog, initialType }: WorkoutLogOv
                     <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary)', color: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Camera size={32} />
                     </div>
-                    {isCompressing ? 'Compressing Proof...' : 'Take Proof Photo'}
+                    {isCompressing ? 'Compressing Proof...' : 'Take or Upload Proof Photo'}
                   </button>
                 )}
                 
