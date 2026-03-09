@@ -774,7 +774,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
                       <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Success rate before 8 AM</div>
                     </div>
                     <div style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--primary)' }}>
-                      {progressData?.personal?.thirtyDayStats?.wakeups > 0 
+                      {progressData?.personal?.thirtyDayStats?.wakeups 
                         ? Math.round((progressData.personal.thirtyDayStats.wakeups / 30) * 100) 
                         : 0}%
                     </div>

@@ -87,9 +87,6 @@ exports.login = async (req, res) => {
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            if (user.googleId) {
-                return res.status(400).json({ message: 'This account is linked to Google. Please sign in with Google.' });
-            }
             console.warn(`[LOGIN_FAILED] Password mismatch for user: "${user.username}"`);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
