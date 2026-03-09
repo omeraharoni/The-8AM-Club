@@ -440,21 +440,6 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
                   </p>
                 </div>
 
-                <input
-                  key={proofImage ? 'has-image' : 'no-image'}
-                  type="file"
-                  accept="image/*"
-                  style={{ 
-                    position: 'absolute',
-                    opacity: 0,
-                    width: 0,
-                    height: 0,
-                    pointerEvents: 'none'
-                  }}
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                />
-
                 {proofImage ? (
                   <div style={{ position: 'relative', width: '200px', height: '200px', margin: '0 auto', borderRadius: '1rem', overflow: 'hidden' }}>
                     <img src={proofImage} alt="Proof Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -466,9 +451,7 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
                     </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isCompressing}
+                  <label
                     style={{
                       width: '100%',
                       padding: '3rem 1rem',
@@ -480,14 +463,22 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: '1rem',
-                      cursor: 'pointer'
+                      cursor: isCompressing ? 'wait' : 'pointer',
+                      boxSizing: 'border-box'
                     }}
                   >
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg"
+                      style={{ display: 'none' }}
+                      onChange={handleFileChange}
+                      disabled={isCompressing}
+                    />
                     <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary)', color: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Camera size={32} />
                     </div>
                     {isCompressing ? 'Compressing Proof...' : 'Take or Upload Proof Photo'}
-                  </button>
+                  </label>
                 )}                
                 <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--muted)' }}>
                   {proofImage ? '✅ Proof verified! You will receive +5 bonus points.' : 'Skip the photo and log without bonus points.'}
