@@ -477,44 +477,74 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
                 </div>
 
                 {proofImage ? (
-                  <div style={{ position: 'relative', width: '200px', height: '200px', margin: '0 auto', borderRadius: '1rem', overflow: 'hidden' }}>
+                  <div style={{ position: 'relative', width: '220px', height: '220px', margin: '0 auto', borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 15px 35px rgba(0,0,0,0.4)' }}>
                     <img src={proofImage} alt="Proof Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <button
                       onClick={() => setProofImage(undefined)}
-                      style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', color: 'white', padding: '5px', cursor: 'pointer' }}
+                      style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', color: 'white', padding: '8px', cursor: 'pointer', backdropFilter: 'blur(4px)' }}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 ) : (
-                  <label
-                    style={{
-                      width: '100%',
-                      padding: '3rem 1rem',
-                      borderRadius: '1.5rem',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '2px dashed rgba(255,255,255,0.1)',
-                      color: 'var(--muted)',
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+                    {/* CAMERA BUTTON */}
+                    <label style={{ 
+                      flex: 1, 
+                      padding: '1.5rem', 
+                      borderRadius: '1.5rem', 
+                      background: 'rgba(251, 191, 36, 0.08)', 
+                      border: '1.5px solid rgba(251, 191, 36, 0.25)',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '1rem',
-                      cursor: isCompressing ? 'wait' : 'pointer',
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/jpg"
-                      style={{ display: 'none' }}
-                      onChange={handleFileChange}
-                      disabled={isCompressing}
-                    />
-                    <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary)', color: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Camera size={32} />
-                    </div>
-                    {isCompressing ? 'Compressing Proof...' : 'Take or Upload Proof Photo'}
-                  </label>
+                      gap: '1.25rem',
+                      cursor: isCompressing ? 'wait' : 'pointer'
+                    }}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        style={{ display: 'none' }}
+                        onChange={handleFileChange}
+                        disabled={isCompressing}
+                      />
+                      <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: 'var(--primary)', color: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Camera size={26} strokeWidth={2.5} />
+                      </div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: '800', color: 'white', fontSize: '1rem' }}>Take Photo</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Snap proof right now</div>
+                      </div>
+                    </label>
+
+                    {/* LIBRARY BUTTON */}
+                    <label style={{ 
+                      flex: 1, 
+                      padding: '1.5rem', 
+                      borderRadius: '1.5rem', 
+                      background: 'rgba(255,255,255,0.03)', 
+                      border: '1.5px solid rgba(255,255,255,0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1.25rem',
+                      cursor: isCompressing ? 'wait' : 'pointer'
+                    }}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={handleFileChange}
+                        disabled={isCompressing}
+                      />
+                      <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Zap size={26} strokeWidth={2.5} />
+                      </div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: '800', color: 'white', fontSize: '1rem' }}>Photo Library</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Choose from your gallery</div>
+                      </div>
+                    </label>
+                  </div>
                 )}                
                 <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--muted)' }}>
                   {proofImage ? '✅ Proof verified! You will receive +5 bonus points.' : 'Skip the photo and log without bonus points.'}
