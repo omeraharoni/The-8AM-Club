@@ -430,9 +430,16 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
                 </div>
 
                 <input
+                  key={proofImage ? 'has-image' : 'no-image'}
                   type="file"
                   accept="image/*"
-                  style={{ display: 'none' }}
+                  style={{ 
+                    position: 'absolute',
+                    opacity: 0,
+                    width: 0,
+                    height: 0,
+                    pointerEvents: 'none'
+                  }}
                   ref={fileInputRef}
                   onChange={handleFileChange}
                 />
