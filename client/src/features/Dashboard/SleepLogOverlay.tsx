@@ -288,8 +288,9 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
               borderTopLeftRadius: '2rem',
               borderTopRightRadius: '2rem',
               padding: '1.5rem',
+              paddingTop: '2.5rem',
               zIndex: 2001,
-              maxHeight: '95vh',
+              maxHeight: '88vh',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: '0 -15px 35px rgba(0,0,0,0.5)',
@@ -297,7 +298,7 @@ const SleepLogOverlay = ({ isOpen, onClose, onLog, isLoading, initialWakeTime }:
               overflowY: 'auto'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
               <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <button 
                   onClick={() => setMode('wakeup')}
