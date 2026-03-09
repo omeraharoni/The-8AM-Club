@@ -238,6 +238,10 @@ exports.getMe = async (req, res) => {
         const stats = await calculateStats(req.user.id);
         const user = await User.findById(req.user.id).select('-password');
         
+        if (!user) {
+            return res.status(404).json({ message: 'User not found in database' });
+        }
+        
         const myActivities = await Activity.find({ userId: req.user.id })
             .sort({ timestamp: -1 })
             .limit(10);
