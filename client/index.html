@@ -7,23 +7,34 @@
     <title>client</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="padding: 50px; text-align: center; color: #555;">
+        <p>Loading THE 8AM CLUB...</p>
+        <p style="font-size: 10px; color: #999;">If this stays blank, your browser might not support the app's modern features.</p>
+      </div>
+    </div>
     <!-- Diagnostic script for mobile debugging -->
     <script>
+      window.onload = function() {
+        console.log("Window loaded");
+        if (document.getElementById('root').innerHTML.includes('Loading')) {
+           console.warn("React didn't replace loading message");
+        }
+      };
       window.onerror = function(msg, url, lineNo, columnNo, error) {
         var debugDiv = document.createElement('div');
         debugDiv.style.position = 'fixed';
         debugDiv.style.top = '0';
         debugDiv.style.left = '0';
         debugDiv.style.width = '100%';
-        debugDiv.style.background = 'red';
+        debugDiv.style.background = '#800000';
         debugDiv.style.color = 'white';
-        debugDiv.style.padding = '10px';
-        debugDiv.style.zIndex = '10000';
+        debugDiv.style.padding = '15px';
+        debugDiv.style.zIndex = '100000';
         debugDiv.style.fontSize = '12px';
         debugDiv.style.wordBreak = 'break-all';
-        debugDiv.innerHTML = 'Error: ' + msg + '<br>Line: ' + lineNo + '<br>URL: ' + url;
-        document.body.appendChild(debugDiv);
+        debugDiv.innerHTML = '<b>CRITICAL ERROR:</b><br>' + msg + '<br><b>Line:</b> ' + lineNo + '<br><b>URL:</b> ' + url;
+        document.body.prepend(debugDiv);
         return false;
       };
     </script>

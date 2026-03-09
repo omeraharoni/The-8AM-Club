@@ -3,10 +3,10 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [react()],
   build: {
-    target: 'es2020'
+    target: 'es2015'
   },
   server: {
     host: '0.0.0.0',
